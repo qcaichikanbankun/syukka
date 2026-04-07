@@ -61,8 +61,8 @@
         .history-header h2 { margin: 0; font-size: 1rem; color: #333; }
         .history-actions { display: flex; gap: 8px; }
         
-        .btn-send {
-            background-color: #28a745; /* 送信を目立たせるため緑に */
+        .btn-csv {
+            background-color: #28a745;
             color: white;
             border: none;
             padding: 6px 12px;
@@ -82,7 +82,7 @@
         }
 
         .table-container {
-            max-height: 300px; /* 無制限に対応するため少し広めに */
+            max-height: 300px;
             overflow-y: auto;
         }
         table {
@@ -142,7 +142,7 @@
         <div class="history-header">
             <h2 id="history-count">照合履歴 (0件)</h2>
             <div class="history-actions">
-                <button class="btn-send" onclick="sendEmail()">報告してクリア</button>
+                <button class="btn-csv" onclick="exportAndShareCSV()">CSV送信</button>
                 <button class="btn-clear" onclick="clearHistory()">消去</button>
             </div>
         </div>
@@ -175,9 +175,6 @@
         let canScan = true;
         
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-
-        // ■■■ メールの設定（送信先） ■■■
-        const TARGET_EMAIL_ADDRESS = "qcaichikanbankun0805@gmail.com"; 
 
         function onScanSuccess(decodedText, decodedResult) {
             if (!canScan || step === 3) return;
@@ -228,7 +225,6 @@
             };
 
             historyData.unshift(record);
-            // 制限（pop）を削除して無制限に保存
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
         }
@@ -246,7 +242,7 @@
         }
 
         function clearHistory() {
-            if (confirm("履歴をすべて削除しますか？")) {
+            if (confirm("履歴をすべて消去しますか？")) {
                 executeClear();
             }
         }
@@ -257,33 +253,58 @@
             renderHistory();
         }
 
-        function sendEmail() {
+        // CSVの生成と共有（またはダウンロード）
+        function exportAndShareCSV() {
             if (historyData.length === 0) {
-                alert("送信する履歴データがありません。");
+                alert("出力する履歴データがありません。");
                 return;
             }
 
-            const subject = "【報告】かんばん照合履歴";
-            let body = "かんばん照合履歴（全件）:\n\n";
-            body += "時間\t工程内\t客先\t結果\n";
-            body += "----------------------------------------\n";
+            // Excelで文字化けしないようBOMを付与
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            
+            // CSVのヘッダーと中身を作成（カンマが含まれても崩れないようダブルクォーテーションで囲む）
+            let csvContent = "日時,工程内かんばん,客先かんばん,判定結果\n";
             historyData.forEach(item => {
-                body += `${item.time} \t ${item.k1} \t ${item.k2} \t ${item.result}\n`;
+                csvContent += `"${item.time}","${item.k1}","${item.k2}","${item.result}"\n`;
             });
 
-            // メールの起動を優先するため、mailto実行
-            const mailtoLink = `mailto:${TARGET_EMAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            
-            // 安全のために、メールアプリの起動を確認してから消去するか、ユーザーに問う形式にします。
-            // window.location.hrefの直後に消すと、メール作成に失敗した場合にデータが戻らないためです。
-            window.location.href = mailtoLink;
+            // ファイル名に日時を入れる
+            const now = new Date();
+            const dateStr = now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2) + "_" + ('0'+now.getHours()).slice(-2) + ('0'+now.getMinutes()).slice(-2);
+            const fileName = `kanban_history_${dateStr}.csv`;
 
-            // 送信ボタンクリックから1秒後に、自動的に消去
-            setTimeout(() => {
-                if (confirm("メールアプリへ送信しました。画面上の履歴をリセットしてよろしいですか？")) {
-                    executeClear();
-                }
-            }, 1000);
+            const blob = new Blob([bom, csvContent], { type: 'text/csv' });
+            const file = new File([blob], fileName, { type: 'text/csv' });
+
+            // スマホの共有機能（Web Share API）が使えるか判定
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    title: 'かんばん照合履歴',
+                    text: 'かんばん照合の履歴CSVファイルです。',
+                    files: [file]
+                }).then(() => {
+                    // 共有完了後にクリアの確認
+                    if (confirm("CSVの送信・共有が完了しました。履歴をリセットしますか？")) {
+                        executeClear();
+                    }
+                }).catch(err => {
+                    console.log("共有キャンセル:", err);
+                });
+            } else {
+                // パソコンや共有機能非対応ブラウザの場合はダウンロードさせる
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                link.click();
+                URL.revokeObjectURL(link.href);
+
+                setTimeout(() => {
+                    if (confirm("CSVを端末にダウンロードしました。履歴をリセットしますか？")) {
+                        executeClear();
+                    }
+                }, 500);
+            }
         }
 
         function resetScanner() {
