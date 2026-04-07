@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>かんばん照合ツール</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+        h1 { font-size: 1.2rem; color: #333; margin-top: 5px; }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        .status-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .instruction {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #0056b3;
+            margin-bottom: 5px;
+        }
+        .data-display {
+            font-size: 0.85rem;
+            color: #555;
+            margin: 3px 0;
+            text-align: left;
+            word-break: break-all;
+        }
+        
+        .history-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .history-header h2 { margin: 0; font-size: 1rem; color: #333; }
+        .history-actions { display: flex; gap: 8px; }
+        
+        .btn-send {
+            background-color: #28a745; /* 送信を目立たせるため緑に */
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .btn-clear {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .table-container {
+            max-height: 300px; /* 無制限に対応するため少し広めに */
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 4px;
+            text-align: center;
+            word-break: break-all;
+        }
+        th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 10; }
+        .row-ok { background-color: #e6f9ec; }
+        .row-ng { background-color: #fce8e8; color: #dc3545; font-weight: bold; }
+
+        #result-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .result-text { font-size: 4rem; font-weight: bold; margin-bottom: 20px; }
+        .match-ok { background-color: rgba(40, 167, 69, 0.95); }
+        .match-ng { background-color: rgba(220, 53, 69, 0.95); }
+        .btn-next {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background-color: #fff;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>かんばん照合ツール</h1>
+
+    <div id="reader"></div>
+
+    <div class="status-box">
+        <div id="instruction" class="instruction">1. 工程内かんばんをスキャン</div>
+        <div class="data-display"><strong>工程内:</strong> <span id="data1">未スキャン</span></div>
+        <div class="data-display"><strong>客先:</strong> <span id="data2">未スキャン</span></div>
+    </div>
+
+    <div class="history-box">
+        <div class="history-header">
+            <h2 id="history-count">照合履歴 (0件)</h2>
+            <div class="history-actions">
+                <button class="btn-send" onclick="sendEmail()">報告してクリア</button>
+                <button class="btn-clear" onclick="clearHistory()">消去</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">時間</th>
+                        <th style="width: 30%;">工程内</th>
+                        <th style="width: 30%;">客先</th>
+                        <th style="width: 20%;">結果</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="result-overlay">
+        <div id="result-text" class="result-text">OK</div>
+        <button class="btn-next" onclick="resetScanner()">次のかんばんへ</button>
+    </div>
+
+    <script>
+        let html5QrCode;
+        let step = 1;
+        let kanban1Data = "";
+        let kanban2Data = "";
+        let canScan = true;
+        
+        let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
+
+        // ■■■ メールの設定（送信先） ■■■
+        const TARGET_EMAIL_ADDRESS = "qcaichikanbankun0805@gmail.com"; 
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!canScan || step === 3) return;
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            if (step === 1) {
+                kanban1Data = decodedText;
+                document.getElementById('data1').innerText = kanban1Data;
+                document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
+                document.getElementById('instruction').style.color = "#d39e00";
+                step = 2;
+                pauseScanning(1000);
+            } else if (step === 2) {
+                kanban2Data = decodedText;
+                document.getElementById('data2').innerText = kanban2Data;
+                step = 3;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const overlay = document.getElementById('result-overlay');
+            const resultText = document.getElementById('result-text');
+            overlay.style.display = 'flex';
+            let isOk = kanban1Data === kanban2Data;
+
+            if (isOk) {
+                overlay.className = 'match-ok';
+                resultText.innerText = '一致 OK';
+                if (navigator.vibrate) navigator.vibrate([100, 100, 100]);
+            } else {
+                overlay.className = 'match-ng';
+                resultText.innerText = '不一致 NG!!';
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            }
+            saveHistory(isOk);
+        }
+
+        function saveHistory(isOk) {
+            const now = new Date();
+            const timeStr = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + ':' + ('0' + now.getSeconds()).slice(-2);
+            const record = {
+                time: timeStr,
+                k1: kanban1Data,
+                k2: kanban2Data,
+                result: isOk ? "OK" : "NG",
+                isOk: isOk
+            };
+
+            historyData.unshift(record);
+            // 制限（pop）を削除して無制限に保存
+            localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+            historyData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = item.isOk ? 'row-ok' : 'row-ng';
+                tr.innerHTML = `<td>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('history-count').innerText = `照合履歴 (${historyData.length}件)`;
+        }
+
+        function clearHistory() {
+            if (confirm("履歴をすべて削除しますか？")) {
+                executeClear();
+            }
+        }
+
+        function executeClear() {
+            historyData = [];
+            localStorage.removeItem('kanbanHistory');
+            renderHistory();
+        }
+
+        function sendEmail() {
+            if (historyData.length === 0) {
+                alert("送信する履歴データがありません。");
+                return;
+            }
+
+            const subject = "【報告】かんばん照合履歴";
+            let body = "かんばん照合履歴（全件）:\n\n";
+            body += "時間\t工程内\t客先\t結果\n";
+            body += "----------------------------------------\n";
+            historyData.forEach(item => {
+                body += `${item.time} \t ${item.k1} \t ${item.k2} \t ${item.result}\n`;
+            });
+
+            // メールの起動を優先するため、mailto実行
+            const mailtoLink = `mailto:${TARGET_EMAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // 安全のために、メールアプリの起動を確認してから消去するか、ユーザーに問う形式にします。
+            // window.location.hrefの直後に消すと、メール作成に失敗した場合にデータが戻らないためです。
+            window.location.href = mailtoLink;
+
+            // 送信ボタンクリックから1秒後に、自動的に消去
+            setTimeout(() => {
+                if (confirm("メールアプリへ送信しました。画面上の履歴をリセットしてよろしいですか？")) {
+                    executeClear();
+                }
+            }, 1000);
+        }
+
+        function resetScanner() {
+            step = 1;
+            kanban1Data = "";
+            kanban2Data = "";
+            document.getElementById('data1').innerText = "未スキャン";
+            document.getElementById('data2').innerText = "未スキャン";
+            document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン";
+            document.getElementById('instruction').style.color = "#0056b3";
+            document.getElementById('result-overlay').style.display = 'none';
+            pauseScanning(500);
+        }
+
+        function pauseScanning(ms) {
+            canScan = false;
+            setTimeout(() => { canScan = true; }, ms);
+        }
+
+        function startCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err => alert("カメラ起動エラー: " + err));
+        }
+
+        window.onload = () => {
+            renderHistory();
+            startCamera();
+        };
+    </script>
+</body>
+</html>
