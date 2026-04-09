@@ -2,254 +2,151 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>かんばん照合ツール</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* モダンUIのためのリセットと基本設定 */
         :root {
             --primary-color: #007aff;
             --success-color: #34c759;
             --danger-color: #ff3b30;
-            --bg-color: #f2f2f7;
             --card-bg: rgba(255, 255, 255, 0.95);
             --text-main: #1c1c1e;
             --text-sub: #8e8e93;
         }
 
         body {
-            font-family: 'SF Pro Text', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            margin: 0;
-            padding: 0;
+            font-family: 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; padding: 0;
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-            background-attachment: fixed;
             color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            height: 100vh; overflow: hidden; 
+            display: flex; flex-direction: column; align-items: center;
         }
 
-        /* アプリ風のメインコンテナ */
         .app-container {
-            width: 100%;
-            max-width: 500px;
-            padding: 15px;
-            box-sizing: border-box;
-            padding-bottom: 30px;
+            width: 100%; max-width: 500px; height: 100%;
+            padding: 5px 10px; box-sizing: border-box;
+            display: flex; flex-direction: column;
         }
 
-        h1 {
-            font-size: 1.4rem;
-            text-align: center;
-            color: #fff;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 10px 0 20px 0;
-            font-weight: 800;
-        }
+        h1 { font-size: 1.1rem; text-align: center; color: #fff; margin: 5px 0; font-weight: 800; }
 
-        /* 共通のカードスタイル（角丸、柔らかい影） */
         .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.4);
+            background: var(--card-bg); backdrop-filter: blur(10px);
+            border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 8px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.4);
         }
 
-        /* スキャナー枠 */
-        #reader {
-            width: 100%;
-            border-radius: 16px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-            border: none;
-        }
+        .camera-card { padding: 5px; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
+        #reader video { max-height: 35vh !important; object-fit: cover !important; }
 
-        /* インストラクションとデータ表示 */
         .instruction {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(0, 122, 255, 0.1);
-            border-radius: 12px;
-            transition: all 0.3s ease;
+            font-size: 1rem; font-weight: bold; color: var(--primary-color);
+            text-align: center; padding: 5px; background: rgba(0, 122, 255, 0.1);
+            border-radius: 8px; margin-bottom: 5px;
         }
 
-        .data-display {
-            font-size: 0.95rem;
-            margin: 8px 0;
-            display: flex;
-            align-items: center;
+        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .data-box {
+            background: #f2f2f7; padding: 5px; border-radius: 6px;
+            text-align: center; border: 1px solid #e5e5ea;
         }
-        .data-display strong {
-            display: inline-block;
-            width: 70px;
-            color: var(--text-sub);
-        }
-        .data-value {
-            flex-grow: 1;
-            font-weight: 600;
-            word-break: break-all;
-            color: var(--text-main);
-            background: #f8f9fa;
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
+        .data-box .label { font-size: 0.7rem; color: var(--text-sub); }
+        .data-box .value { font-size: 0.85rem; font-weight: bold; word-break: break-all; margin-top: 2px; color: #bbb; }
 
-        /* 履歴エリア */
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .history-header h2 { margin: 0; font-size: 1.1rem; }
-
-        .btn {
-            border: none;
-            padding: 10px 16px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-        .btn:active { transform: scale(0.95); }
-        .btn-csv { background: var(--success-color); color: white; box-shadow: 0 4px 10px rgba(52, 199, 89, 0.3); }
+        .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .history-header h2 { margin: 0; font-size: 0.9rem; }
+        
+        .btn { border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+        .btn-csv { background: var(--success-color); color: white; }
         .btn-clear { background: #e5e5ea; color: var(--text-main); }
 
-        .table-container {
-            max-height: 250px;
-            overflow-y: auto;
-            border-radius: 10px;
-            border: 1px solid #e5e5ea;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-        }
-        th, td { padding: 10px 6px; text-align: center; word-break: break-all; border-bottom: 1px solid #e5e5ea; }
-        th { background-color: #f2f2f7; position: sticky; top: 0; z-index: 10; color: var(--text-sub); font-weight: 600; }
+        .table-container { flex-grow: 1; overflow-y: auto; border-radius: 6px; border: 1px solid #e5e5ea; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th, td { padding: 4px; text-align: center; border-bottom: 1px solid #e5e5ea; }
+        th { background-color: #f2f2f7; position: sticky; top: 0; z-index: 10; color: var(--text-sub); }
         .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
         .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
 
-        /* 結果オーバーレイ（フルスクリーン） */
-        #result-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 2000;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            animation: fadeIn 0.2s ease-out;
+        /* 結果表示オーバーレイ */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-
-        .result-text { font-size: 4.5rem; font-weight: 900; margin-bottom: 30px; text-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .result-text { font-size: 5rem; font-weight: 900; margin-bottom: 10px; }
         .match-ok { background: linear-gradient(135deg, #34c759 0%, #28a745 100%); }
-        .match-ng { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); }
-
-        .btn-next {
-            padding: 18px 50px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border-radius: 40px;
-            background: white;
-            color: var(--text-main);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        
+        /* ロック画面（NG時） */
+        #lock-screen {
+            background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%);
+            text-align: center;
+        }
+        .lock-box {
+            background: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--text-main);
+            width: 80%; max-width: 300px;
+        }
+        .lock-box h3 { margin: 0 0 15px 0; color: var(--danger-color); }
+        .pw-input {
+            width: 100%; padding: 15px; font-size: 1.5rem; text-align: center;
+            border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px;
+            -webkit-text-security: disc; /* パスワードを伏せ字に */
+        }
+        .btn-unlock {
+            width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold;
+            background: var(--text-main); color: white; border: none; border-radius: 10px;
         }
 
-        /* スタート画面（音声アンロック用） */
         #start-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            z-index: 3000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
+            z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
         }
-        .start-icon { font-size: 4rem; margin-bottom: 20px; }
-        .btn-start {
-            padding: 20px 60px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            border-radius: 40px;
-            background: white;
-            color: #764ba2;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            cursor: pointer;
-        }
-        .btn-start:active { transform: scale(0.95); }
+        .btn-start { padding: 15px 40px; font-size: 1.2rem; font-weight: bold; border-radius: 30px; background: white; color: #764ba2; border: none; }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <div class="start-icon">🏭</div>
-        <h2 style="margin-bottom: 40px;">かんばん照合システム</h2>
+        <h2 style="margin-bottom: 30px;">かんばん照合システム</h2>
         <button class="btn-start" onclick="initApp()">作業を開始する</button>
-        <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">※カメラと音声を使用します</p>
     </div>
 
     <div class="app-container">
         <h1>かんばん照合ツール</h1>
-
-        <div class="glass-card" style="padding: 10px;">
-            <div id="reader"></div>
-        </div>
-
+        <div class="glass-card camera-card"><div id="reader"></div></div>
         <div class="glass-card">
             <div id="instruction" class="instruction">1. 工程内かんばんをスキャン</div>
-            <div class="data-display">
-                <strong>工程内:</strong> <span id="data1" class="data-value" style="color: #bbb;">未スキャン</span>
-            </div>
-            <div class="data-display">
-                <strong>客先:</strong> <span id="data2" class="data-value" style="color: #bbb;">未スキャン</span>
+            <div class="status-grid">
+                <div class="data-box"><div class="label">工程内</div><div id="data1" class="value">未スキャン</div></div>
+                <div class="data-box"><div class="label">客先</div><div id="data2" class="value">未スキャン</div></div>
             </div>
         </div>
-
-        <div class="glass-card">
+        <div class="glass-card history-card">
             <div class="history-header">
-                <h2 id="history-count">照合履歴 (0件)</h2>
-                <div>
-                    <button class="btn btn-clear" onclick="clearHistory()">消去</button>
-                    <button class="btn btn-csv" onclick="exportAndShareCSV()">CSV出力</button>
-                </div>
+                <h2 id="history-count">履歴 (0件)</h2>
+                <div><button class="btn btn-clear" onclick="clearHistory()">消去</button><button class="btn btn-csv" onclick="exportAndShareCSV()">CSV</button></div>
             </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 20%;">時間</th>
-                            <th style="width: 30%;">工程内</th>
-                            <th style="width: 30%;">客先</th>
-                            <th style="width: 20%;">結果</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-tbody"></tbody>
-                </table>
-            </div>
+            <div class="table-container"><table><thead><tr><th>時間</th><th>工程内</th><th>客先</th><th>判定</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
         </div>
     </div>
 
-    <div id="result-overlay">
-        <div id="result-text" class="result-text">OK</div>
-        <button class="btn btn-next" onclick="resetScanner()">次へ (Next)</button>
+    <div id="ok-overlay" class="overlay match-ok">
+        <div class="result-text">OK</div>
+        <div style="font-size: 1.2rem;">照合一致</div>
+    </div>
+
+    <div id="lock-screen" class="overlay">
+        <div class="result-text" style="margin-bottom: 30px;">NG!!</div>
+        <div class="lock-box">
+            <h3>不一致：ロック中</h3>
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">責任者が解除してください</p>
+            <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
+            <button class="btn-unlock" onclick="checkPassword()">解除</button>
+        </div>
     </div>
 
     <script>
@@ -259,114 +156,91 @@
         let kanban2Data = "";
         let canScan = true;
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-
-        // 音声（Web Audio API）のコンテキスト
         let audioCtx;
 
-        // アプリ初期化（スタートボタン押下時）
         function initApp() {
             document.getElementById('start-screen').style.display = 'none';
-
-            // 音声エンジンの初期化（ユーザー操作をトリガーにする必要があるためここで実行）
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-
-            // 無音を再生してロックを解除
-            const oscillator = audioCtx.createOscillator();
-            oscillator.connect(audioCtx.destination);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.01);
-
             renderHistory();
             startCamera();
         }
 
-        // ビープ音生成関数
         function playTone(frequency, type, duration) {
             if (!audioCtx) return;
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-
-            oscillator.type = type; // 'sine', 'square', 'sawtooth', 'triangle'
+            oscillator.type = type;
             oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-
-            // 音の減衰（フェードアウト）で自然な音にする
             gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + duration);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + duration);
         }
 
-        // 各種サウンド
-        function playScanSound() {
-            playTone(1200, 'sine', 0.1); // ピッ！
-        }
-        function playOkSound() {
-            playTone(880, 'sine', 0.1); // ピ
-            setTimeout(() => playTone(1760, 'sine', 0.2), 100); // ローン！
-        }
-        function playNgSound() {
-            playTone(300, 'sawtooth', 0.5); // ブーーー！
-        }
+        function playScanSound() { playTone(1200, 'sine', 0.1); }
+        function playOkSound() { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); }
+        function playNgSound() { playTone(300, 'sawtooth', 0.6); }
 
-        // スキャン成功時の処理
         function onScanSuccess(decodedText, decodedResult) {
             if (!canScan || step === 3) return;
-
             if (navigator.vibrate) navigator.vibrate(50);
-            playScanSound(); // スキャン音
+            playScanSound();
 
             if (step === 1) {
                 kanban1Data = decodedText;
                 document.getElementById('data1').innerText = kanban1Data;
                 document.getElementById('data1').style.color = "var(--text-main)";
-
-                const inst = document.getElementById('instruction');
-                inst.innerText = "2. 客先かんばんをスキャン";
-                inst.style.background = "rgba(255, 149, 0, 0.1)";
-                inst.style.color = "#ff9500";
-
-                step = 2;
-                pauseScanning(1000);
+                document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
+                document.getElementById('instruction').style.color = "#ff9500";
+                step = 2; pauseScanning(1000);
             } else if (step === 2) {
                 kanban2Data = decodedText;
                 document.getElementById('data2').innerText = kanban2Data;
                 document.getElementById('data2').style.color = "var(--text-main)";
-                step = 3;
-                checkMatch();
+                step = 3; checkMatch();
             }
         }
 
         function checkMatch() {
-            const overlay = document.getElementById('result-overlay');
-            const resultText = document.getElementById('result-text');
-            overlay.style.display = 'flex';
             let isOk = kanban1Data === kanban2Data;
+            saveHistory(isOk);
 
             if (isOk) {
-                overlay.className = 'match-ok';
-                resultText.innerText = 'OK';
+                // OKの時：自動リセット
+                document.getElementById('ok-overlay').style.display = 'flex';
                 playOkSound();
                 if (navigator.vibrate) navigator.vibrate([100, 100, 100]);
+                setTimeout(() => {
+                    document.getElementById('ok-overlay').style.display = 'none';
+                    resetScanner();
+                }, 1500); // 1.5秒後に自動で次へ
             } else {
-                overlay.className = 'match-ng';
-                resultText.innerText = 'NG!!';
+                // NGの時：ロック
+                document.getElementById('lock-screen').style.display = 'flex';
                 playNgSound();
                 if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+                document.getElementById('pw-input').focus();
             }
-            saveHistory(isOk);
+        }
+
+        function checkPassword() {
+            const pw = document.getElementById('pw-input').value;
+            if (pw === "8181") {
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('pw-input').value = "";
+                resetScanner();
+            } else {
+                alert("パスワードが違います");
+                document.getElementById('pw-input').value = "";
+            }
         }
 
         function saveHistory(isOk) {
             const now = new Date();
             const timeStr = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + ':' + ('0' + now.getSeconds()).slice(-2);
-            const record = { time: timeStr, k1: kanban1Data, k2: kanban2Data, result: isOk ? "OK" : "NG", isOk: isOk };
-
-            historyData.unshift(record);
+            historyData.unshift({ time: timeStr, k1: kanban1Data, k2: kanban2Data, result: isOk ? "OK" : "NG", isOk: isOk });
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
         }
@@ -380,69 +254,48 @@
                 tr.innerHTML = `<td>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>`;
                 tbody.appendChild(tr);
             });
-            document.getElementById('history-count').innerText = `照合履歴 (${historyData.length}件)`;
+            document.getElementById('history-count').innerText = `履歴 (${historyData.length}件)`;
         }
 
         function clearHistory() {
             if (confirm("履歴をすべて消去しますか？")) {
-                historyData = [];
-                localStorage.removeItem('kanbanHistory');
-                renderHistory();
+                historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory();
             }
         }
 
         function exportAndShareCSV() {
-            if (historyData.length === 0) { alert("出力するデータがありません。"); return; }
+            if (historyData.length === 0) return;
             const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            let csvContent = "日時,工程内かんばん,客先かんばん,判定結果\n";
-            historyData.forEach(item => {
-                csvContent += `"${item.time}","${item.k1}","${item.k2}","${item.result}"\n`;
-            });
-            const now = new Date();
-            const dateStr = now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2) + "_" + ('0'+now.getHours()).slice(-2) + ('0'+now.getMinutes()).slice(-2);
-            const fileName = `kanban_${dateStr}.csv`;
-            const blob = new Blob([bom, csvContent], { type: 'text/csv' });
-            const file = new File([blob], fileName, { type: 'text/csv' });
-
+            let csv = "日時,工程内,客先,判定\n";
+            historyData.forEach(item => csv += `"${item.time}","${item.k1}","${item.k2}","${item.result}"\n`);
+            const blob = new Blob([bom, csv], { type: 'text/csv' });
+            const file = new File([blob], "kanban_log.csv", { type: 'text/csv' });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ title: 'かんばん照合履歴', files: [file] }).then(() => {
-                    if (confirm("送信が完了しました。履歴をリセットしますか？")) clearHistory();
-                }).catch(err => console.log(err));
+                navigator.share({ title: '照合履歴', files: [file] });
             } else {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = fileName;
-                link.click();
-                setTimeout(() => { if (confirm("ダウンロードしました。履歴をリセットしますか？")) clearHistory(); }, 500);
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "kanban_log.csv"; a.click();
             }
         }
 
         function resetScanner() {
             step = 1;
-            kanban1Data = "";
-            kanban2Data = "";
+            kanban1Data = ""; kanban2Data = "";
             document.getElementById('data1').innerText = "未スキャン";
             document.getElementById('data1').style.color = "#bbb";
             document.getElementById('data2').innerText = "未スキャン";
             document.getElementById('data2').style.color = "#bbb";
-
-            const inst = document.getElementById('instruction');
-            inst.innerText = "1. 工程内かんばんをスキャン";
-            inst.style.background = "rgba(0, 122, 255, 0.1)";
-            inst.style.color = "var(--primary-color)";
-
-            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン";
+            document.getElementById('instruction').style.color = "var(--primary-color)";
             pauseScanning(500);
         }
 
         function pauseScanning(ms) {
-            canScan = false;
-            setTimeout(() => { canScan = true; }, ms);
+            canScan = false; setTimeout(() => { canScan = true; }, ms);
         }
 
         function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+            const config = { fps: 15, qrbox: { width: 200, height: 200 }, aspectRatio: 1.33 };
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
                 .catch(err => alert("カメラ起動エラー: " + err));
         }
