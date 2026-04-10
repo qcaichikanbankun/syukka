@@ -234,26 +234,18 @@
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
         }
 
-        function startCamera() {
+  function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
-            
-            // ★変更点1：qrbox（枠）を完全に削除。画面のどこにQRがあっても最高画質で検知させます。
-            const config = { 
-                fps: 15,
-                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ] // QR専用モードで爆速化
+
+            // エラーの原因だった制限を削除し、枠なし（全画面）でスキャン
+            const config = {
+                fps: 15
             };
 
-            // ★変更点2：iPhoneのメインカメラをフルHD（1080p）で強制起動させる設定
-            const videoConstraints = {
-                facingMode: "environment",
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            };
-
-            // カメラ起動実行
-            html5QrCode.start(videoConstraints, config, onScanSuccess)
+            // 最も安定して起動する標準の「背面カメラ指定」
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
             .then(() => {
-                // ズーム設定（iOSの仕様でブロックされる場合は無視されます）
+                // ズームバーの表示設定
                 const videoElement = document.querySelector("#reader video");
                 if (videoElement && videoElement.srcObject) {
                     const videoTrack = videoElement.srcObject.getVideoTracks()[0];
@@ -263,16 +255,20 @@
                             document.getElementById('zoom-panel').style.display = 'flex';
                             const slider = document.getElementById('zoom-slider');
                             slider.min = cap.zoom.min; slider.max = cap.zoom.max; slider.step = cap.zoom.step;
-                            slider.addEventListener('input', () => videoTrack.applyConstraints({ advanced: [{ zoom: slider.value }] }));
+                            slider.addEventListener('input', () => {
+                                videoTrack.applyConstraints({ advanced: [{ zoom: slider.value }] })
+                                .catch(e => console.log(e));
+                            });
                         }
                     }
                 }
             })
             .catch(err => {
-                // 万が一フルHD起動に失敗した場合は、標準設定で保険のリトライ
-                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                alert("カメラ起動エラー。ページを更新してください: " + err);
             });
         }
+
+
 
 
 
