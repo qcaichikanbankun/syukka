@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>かんばん照合ツール</title>
+    <title>かんばん照合システム</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
@@ -40,7 +40,8 @@
 
         .camera-card { padding: 5px; }
         #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
-        #reader video { max-height: 35vh !important; object-fit: cover !important; }
+        /* ビデオの表示を調整 */
+        #reader video { width: 100% !important; max-height: 38vh !important; object-fit: cover !important; }
 
         .instruction {
             font-size: 1rem; font-weight: bold; color: var(--primary-color);
@@ -67,8 +68,8 @@
         .btn-clear { background: #e5e5ea; color: var(--text-main); }
 
         .table-container { flex-grow: 1; overflow-y: auto; border-radius: 6px; border: 1px solid #e5e5ea; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
-        th, td { padding: 4px; text-align: center; border-bottom: 1px solid #e5e5ea; word-break: break-all;}
+        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
+        th, td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #e5e5ea; word-break: break-all;}
         th { background-color: #f2f2f7; position: sticky; top: 0; z-index: 10; color: var(--text-sub); }
         .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
         .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
@@ -135,21 +136,20 @@
                 <h2 id="history-count">履歴 (0件)</h2>
                 <div><button class="btn btn-clear" onclick="clearHistory()">消去</button><button class="btn btn-csv" onclick="exportAndShareCSV()">CSV</button></div>
             </div>
-            <div class="table-container"><table><thead><tr><th>時間</th><th>工程内(抽出)</th><th>客先(抽出)</th><th>判定</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
+            <div class="table-container"><table><thead><tr><th style="width: 25%">日付/時間</th><th style="width: 30%">工程(抽出)</th><th style="width: 30%">客先(抽出)</th><th style="width: 15%">判定</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
         </div>
     </div>
 
     <div id="ok-overlay" class="overlay match-ok">
         <div class="result-text">OK</div>
-        <div style="font-size: 1.2rem;">品番・背番号 一致</div>
+        <div style="font-size: 1.2rem;">一致を確認</div>
     </div>
 
     <div id="lock-screen" class="overlay">
         <div class="result-text" style="margin-bottom: 10px;">NG!!</div>
-        <div style="font-size: 1.2rem; margin-bottom: 20px; font-weight:bold;">不一致が発生しました</div>
         <div class="lock-box">
             <h3>ロック中</h3>
-            <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">責任者が解除してください</p>
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">不一致：責任者が解除してください</p>
             <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
             <button class="btn-unlock" onclick="checkPassword()">解除</button>
         </div>
@@ -189,48 +189,38 @@
         function playOkSound() { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); }
         function playNgSound() { playTone(300, 'sawtooth', 0.6); }
 
-        // ■■■ 最重要：かんばんデータの解析と抽出ロジック ■■■
         function parseKanban(data) {
-            // 途中の改行(\r \n)を削除して1行の綺麗なデータにする（463の例の対策）
-            let cleanText = data.replace(/[\r\n]/g, '');
+            let cleanText = data.replace(/[\r\n]/g, '').trim();
             let result = { type: 'unknown', partNum: '', baseNum: '', raw: cleanText };
 
-            // 1. 客先かんばんの解析（スペース区切りで5番目のブロックを探す）
             let parts = cleanText.split(/\s+/);
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
                 let block5 = parts[4];
                 if (block5.length >= 15) {
                     result.type = 'customer';
-                    result.baseNum = block5.substring(0, 3);    // 最初の3桁 (背番号)
-                    result.partNum = block5.substring(3, 15);   // 次の12桁 (品番)
+                    result.baseNum = block5.substring(0, 3);
+                    result.partNum = block5.substring(3, 15);
                     return result;
                 }
             }
 
-            // 2. 工程内かんばんの解析（正規表現で末尾付近の規則を探す）
-            // 法則: 12文字の英数字 + スペース + 3桁の数字 + ハイフン
             let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
             if (match) {
                 result.type = 'inprocess';
-                result.partNum = match[1];  // 12桁の品番
-                result.baseNum = match[2];  // 3桁の背番号
+                result.partNum = match[1];
+                result.baseNum = match[2];
                 return result;
             }
-
-            // もしマッチしなかった場合は「不明なQR」として返す
             return result;
         }
 
         function onScanSuccess(decodedText, decodedResult) {
             if (!canScan || step === 3) return;
-
-            // 読み取ったデータを即座に解析する
             let parsed = parseKanban(decodedText);
 
-            // 関係ないQRを読んだ場合のポカヨケ
             if (parsed.type === 'unknown') {
                 playNgSound();
-                alert("エラー：かんばんのQRコードではありません。\n\n読取内容：\n" + decodedText);
+                alert("エラー：規格外のQRです\n内容：" + decodedText.substring(0,20) + "...");
                 pauseScanning(2000);
                 return;
             }
@@ -241,48 +231,38 @@
             if (step === 1) {
                 k1Parsed = parsed;
                 document.getElementById('data1').innerText = "完了";
-                document.getElementById('parsed1').innerText = `${parsed.baseNum} / ${parsed.partNum}`;
-                document.getElementById('parsed1').className = "parsed-value";
-
+                document.getElementById('parsed1').innerText = `${parsed.baseNum}-${parsed.partNum}`;
                 document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
                 document.getElementById('instruction').style.color = "#ff9500";
                 step = 2; pauseScanning(1000);
-
             } else if (step === 2) {
                 k2Parsed = parsed;
                 document.getElementById('data2').innerText = "完了";
-                document.getElementById('parsed2').innerText = `${parsed.baseNum} / ${parsed.partNum}`;
+                document.getElementById('parsed2').innerText = `${parsed.baseNum}-${parsed.partNum}`;
                 step = 3; checkMatch();
             }
         }
 
         function checkMatch() {
-            // 品番(12桁)と背番号(3桁)が両方一致しているかを判定する
             let isOk = (k1Parsed.partNum === k2Parsed.partNum) && (k1Parsed.baseNum === k2Parsed.baseNum);
-            
             saveHistory(isOk);
 
             if (isOk) {
                 document.getElementById('ok-overlay').style.display = 'flex';
                 playOkSound();
-                if (navigator.vibrate) navigator.vibrate([100, 100, 100]);
                 setTimeout(() => {
                     document.getElementById('ok-overlay').style.display = 'none';
                     resetScanner();
                 }, 1500);
             } else {
-                document.getElementById('parsed1').classList.add('parsed-ng');
-                document.getElementById('parsed2').classList.add('parsed-ng');
                 document.getElementById('lock-screen').style.display = 'flex';
                 playNgSound();
-                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
                 document.getElementById('pw-input').focus();
             }
         }
 
         function checkPassword() {
-            const pw = document.getElementById('pw-input').value;
-            if (pw === "8181") {
+            if (document.getElementById('pw-input').value === "8181") {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('pw-input').value = "";
                 resetScanner();
@@ -294,12 +274,17 @@
 
         function saveHistory(isOk) {
             const now = new Date();
-            const timeStr = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + ':' + ('0' + now.getSeconds()).slice(-2);
-            // 履歴には抽出したわかりやすいデータを残す
-            const k1Display = `${k1Parsed.baseNum} / ${k1Parsed.partNum}`;
-            const k2Display = `${k2Parsed.baseNum} / ${k2Parsed.partNum}`;
+            const dateStr = now.toLocaleDateString(); // 日付
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}); // 時間
             
-            historyData.unshift({ time: timeStr, k1: k1Display, k2: k2Display, result: isOk ? "OK" : "NG", isOk: isOk });
+            historyData.unshift({ 
+                date: dateStr, 
+                time: timeStr, 
+                k1: `${k1Parsed.baseNum}/${k1Parsed.partNum}`, 
+                k2: `${k2Parsed.baseNum}/${k2Parsed.partNum}`, 
+                result: isOk ? "OK" : "NG", 
+                isOk: isOk 
+            });
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
         }
@@ -310,7 +295,7 @@
             historyData.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.className = item.isOk ? 'row-ok' : 'row-ng';
-                tr.innerHTML = `<td>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>`;
+                tr.innerHTML = `<td>${item.date}<br>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>`;
                 tbody.appendChild(tr);
             });
             document.getElementById('history-count').innerText = `履歴 (${historyData.length}件)`;
@@ -325,8 +310,8 @@
         function exportAndShareCSV() {
             if (historyData.length === 0) return;
             const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            let csv = "日時,工程内かんばん(抽出データ),客先かんばん(抽出データ),判定\n";
-            historyData.forEach(item => csv += `"${item.time}","${item.k1}","${item.k2}","${item.result}"\n`);
+            let csv = "日付,時間,工程内(抽出),客先(抽出),判定\n";
+            historyData.forEach(item => csv += `"${item.date}","${item.time}","${item.k1}","${item.k2}","${item.result}"\n`);
             const blob = new Blob([bom, csv], { type: 'text/csv' });
             const file = new File([blob], "kanban_log.csv", { type: 'text/csv' });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -337,16 +322,11 @@
         }
 
         function resetScanner() {
-            step = 1;
-            k1Parsed = null; k2Parsed = null;
+            step = 1; k1Parsed = null; k2Parsed = null;
             document.getElementById('data1').innerText = "読取待機...";
-            document.getElementById('parsed1').innerText = "---";
-            document.getElementById('parsed1').className = "parsed-value";
-            
             document.getElementById('data2').innerText = "読取待機...";
+            document.getElementById('parsed1').innerText = "---";
             document.getElementById('parsed2').innerText = "---";
-            document.getElementById('parsed2').className = "parsed-value";
-            
             document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン";
             document.getElementById('instruction').style.color = "var(--primary-color)";
             pauseScanning(500);
@@ -358,7 +338,11 @@
 
         function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 200, height: 200 }, aspectRatio: 1.33 };
+            const config = { 
+                fps: 20, // 秒間20回スキャン（向上）
+                qrbox: { width: 250, height: 250 }, // 読み取り枠を拡大
+                aspectRatio: 1.0 // スクエアに固定してフォーカスを安定化
+            };
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
                 .catch(err => alert("カメラ起動エラー: " + err));
         }
