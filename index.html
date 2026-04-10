@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="かんばん照合">
+    
     <title>かんばん照合システム</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -21,9 +26,11 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
+        /* ホーム画面用：上部のステータスバーが重ならないように少し余白を空ける */
         .app-container {
             width: 100%; max-width: 500px; height: 100%;
-            padding: 5px 10px; box-sizing: border-box;
+            padding: 25px 10px 10px 10px; /* 上部を少し広げた */
+            box-sizing: border-box;
             display: flex; flex-direction: column;
         }
 
@@ -121,14 +128,12 @@
 
     <div id="ok-overlay" class="overlay match-ok">
         <div style="font-size: 5rem; font-weight: 900;">OK</div>
-        <div style="font-size: 1.2rem;">照合一致</div>
     </div>
 
     <div id="lock-screen" class="overlay match-ng">
         <div style="font-size: 4rem; font-weight: 900; margin-bottom: 20px;">NG!!</div>
         <div class="lock-box">
             <h3 style="color:var(--danger-color); margin:0;">不一致ロック</h3>
-            <p style="font-size:0.8rem; color:#666;">パスワードを入力してください</p>
             <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
             <button onclick="checkPassword()" style="width:100%; padding:12px; background:#1c1c1e; color:white; border:none; border-radius:10px; font-weight:bold;">解除</button>
         </div>
@@ -154,7 +159,6 @@
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let result = { type: 'unknown', partNum: '', baseNum: '' };
-
             let parts = cleanText.split(/\s+/);
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
                 let block5 = parts[4];
@@ -165,7 +169,6 @@
                     return result;
                 }
             }
-
             let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
             if (match) {
                 result.type = 'inprocess';
@@ -180,7 +183,6 @@
             if (!canScan || step === 3) return;
             let parsed = parseKanban(decodedText);
             if (parsed.type === 'unknown') return; 
-
             if (navigator.vibrate) navigator.vibrate(50);
             
             if (step === 1) {
@@ -236,7 +238,7 @@
             html5QrCode = new Html5Qrcode("reader");
             const config = { 
                 fps: 25, 
-                qrbox: { width: 160, height: 160 }, // 小さな固定枠でオートフォーカスを最適化
+                qrbox: { width: 160, height: 160 }, 
                 aspectRatio: 1.0,
                 videoConstraints: {
                     facingMode: "environment",
@@ -244,17 +246,13 @@
                     height: { min: 720, ideal: 1080 }
                 }
             };
-
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-            .then(() => {
-                setupZoom();
-            }).catch(err => alert("カメラ起動失敗: " + err));
+            .then(() => { setupZoom(); }).catch(err => alert("カメラ起動失敗: " + err));
         }
 
         function setupZoom() {
             const videoTrack = html5QrCode.getActiveTrack();
             const capabilities = videoTrack.getCapabilities();
-            
             if (capabilities.zoom) {
                 const zoomPanel = document.getElementById('zoom-panel');
                 const zoomSlider = document.getElementById('zoom-slider');
@@ -263,7 +261,6 @@
                 zoomSlider.max = capabilities.zoom.max;
                 zoomSlider.step = capabilities.zoom.step;
                 zoomSlider.value = videoTrack.getSettings().zoom || 1;
-
                 zoomSlider.addEventListener('input', () => {
                     videoTrack.applyConstraints({ advanced: [{ zoom: zoomSlider.value }] });
                 });
@@ -288,32 +285,21 @@
         }
 
         function pauseScanning(ms) { canScan = false; setTimeout(() => { canScan = true; }, ms); }
-
         function clearHistory() { if (confirm("全消去？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
         
-        // ★★★ iPhoneショートカット呼び出し機能 ★★★
         function autoSendCSV() {
-            if (historyData.length === 0) { 
-                alert("送信するデータがありません。"); 
-                return; 
-            }
-
-            // CSVテキストデータの生成
+            if (historyData.length === 0) { alert("データなし"); return; }
             let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.result}"`).join("\n");
-
-            // ショートカットの名前（iPhone側で設定する名前と完全に一致させる）
+            
             const shortcutName = encodeURIComponent("かんばんCSV送信");
             const encodedCsv = encodeURIComponent(csv);
 
-            // iPhoneのショートカットアプリを起動し、データを渡す
+            // ホーム画面からでも、Safariからでも動作するURLスキーム
             window.location.href = `shortcuts://run-shortcut?name=${shortcutName}&input=${encodedCsv}`;
 
-            // 1.5秒後に履歴をリセットするか確認する
             setTimeout(() => {
-                if (confirm("ショートカットへデータを渡しました。画面上の履歴をリセットしますか？")) {
-                    historyData = []; 
-                    localStorage.removeItem('kanbanHistory'); 
-                    renderHistory();
+                if (confirm("送信しました。履歴をリセットしますか？")) {
+                    historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory();
                 }
             }, 1500);
         }
