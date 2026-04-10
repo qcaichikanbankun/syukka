@@ -54,7 +54,9 @@
             text-align: center; border: 1px solid #e5e5ea;
         }
         .data-box .label { font-size: 0.7rem; color: var(--text-sub); }
-        .data-box .value { font-size: 0.85rem; font-weight: bold; word-break: break-all; margin-top: 2px; color: #bbb; }
+        .data-box .value { font-size: 0.75rem; word-break: break-all; margin-top: 2px; color: #888; height: 1.2em; overflow: hidden; }
+        .data-box .parsed-value { font-size: 0.9rem; font-weight: bold; color: var(--primary-color); margin-top: 4px; }
+        .parsed-ng { color: var(--danger-color) !important; }
 
         .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; }
         .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
@@ -65,13 +67,12 @@
         .btn-clear { background: #e5e5ea; color: var(--text-main); }
 
         .table-container { flex-grow: 1; overflow-y: auto; border-radius: 6px; border: 1px solid #e5e5ea; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        th, td { padding: 4px; text-align: center; border-bottom: 1px solid #e5e5ea; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        th, td { padding: 4px; text-align: center; border-bottom: 1px solid #e5e5ea; word-break: break-all;}
         th { background-color: #f2f2f7; position: sticky; top: 0; z-index: 10; color: var(--text-sub); }
         .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
         .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
 
-        /* 結果表示オーバーレイ */
         .overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white;
@@ -79,11 +80,7 @@
         .result-text { font-size: 5rem; font-weight: 900; margin-bottom: 10px; }
         .match-ok { background: linear-gradient(135deg, #34c759 0%, #28a745 100%); }
         
-        /* ロック画面（NG時） */
-        #lock-screen {
-            background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%);
-            text-align: center;
-        }
+        #lock-screen { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); text-align: center; }
         .lock-box {
             background: white; padding: 25px; border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--text-main);
@@ -93,7 +90,7 @@
         .pw-input {
             width: 100%; padding: 15px; font-size: 1.5rem; text-align: center;
             border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px;
-            -webkit-text-security: disc; /* パスワードを伏せ字に */
+            -webkit-text-security: disc;
         }
         .btn-unlock {
             width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold;
@@ -121,8 +118,16 @@
         <div class="glass-card">
             <div id="instruction" class="instruction">1. 工程内かんばんをスキャン</div>
             <div class="status-grid">
-                <div class="data-box"><div class="label">工程内</div><div id="data1" class="value">未スキャン</div></div>
-                <div class="data-box"><div class="label">客先</div><div id="data2" class="value">未スキャン</div></div>
+                <div class="data-box">
+                    <div class="label">工程内</div>
+                    <div id="data1" class="value">読取待機...</div>
+                    <div id="parsed1" class="parsed-value">---</div>
+                </div>
+                <div class="data-box">
+                    <div class="label">客先</div>
+                    <div id="data2" class="value">読取待機...</div>
+                    <div id="parsed2" class="parsed-value">---</div>
+                </div>
             </div>
         </div>
         <div class="glass-card history-card">
@@ -130,19 +135,20 @@
                 <h2 id="history-count">履歴 (0件)</h2>
                 <div><button class="btn btn-clear" onclick="clearHistory()">消去</button><button class="btn btn-csv" onclick="exportAndShareCSV()">CSV</button></div>
             </div>
-            <div class="table-container"><table><thead><tr><th>時間</th><th>工程内</th><th>客先</th><th>判定</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
+            <div class="table-container"><table><thead><tr><th>時間</th><th>工程内(抽出)</th><th>客先(抽出)</th><th>判定</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
         </div>
     </div>
 
     <div id="ok-overlay" class="overlay match-ok">
         <div class="result-text">OK</div>
-        <div style="font-size: 1.2rem;">照合一致</div>
+        <div style="font-size: 1.2rem;">品番・背番号 一致</div>
     </div>
 
     <div id="lock-screen" class="overlay">
-        <div class="result-text" style="margin-bottom: 30px;">NG!!</div>
+        <div class="result-text" style="margin-bottom: 10px;">NG!!</div>
+        <div style="font-size: 1.2rem; margin-bottom: 20px; font-weight:bold;">不一致が発生しました</div>
         <div class="lock-box">
-            <h3>不一致：ロック中</h3>
+            <h3>ロック中</h3>
             <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">責任者が解除してください</p>
             <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
             <button class="btn-unlock" onclick="checkPassword()">解除</button>
@@ -152,8 +158,8 @@
     <script>
         let html5QrCode;
         let step = 1;
-        let kanban1Data = "";
-        let kanban2Data = "";
+        let k1Parsed = null;
+        let k2Parsed = null;
         let canScan = true;
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
         let audioCtx;
@@ -183,41 +189,90 @@
         function playOkSound() { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); }
         function playNgSound() { playTone(300, 'sawtooth', 0.6); }
 
+        // ■■■ 最重要：かんばんデータの解析と抽出ロジック ■■■
+        function parseKanban(data) {
+            // 途中の改行(\r \n)を削除して1行の綺麗なデータにする（463の例の対策）
+            let cleanText = data.replace(/[\r\n]/g, '');
+            let result = { type: 'unknown', partNum: '', baseNum: '', raw: cleanText };
+
+            // 1. 客先かんばんの解析（スペース区切りで5番目のブロックを探す）
+            let parts = cleanText.split(/\s+/);
+            if (parts.length >= 5 && parts[0].startsWith("JT")) {
+                let block5 = parts[4];
+                if (block5.length >= 15) {
+                    result.type = 'customer';
+                    result.baseNum = block5.substring(0, 3);    // 最初の3桁 (背番号)
+                    result.partNum = block5.substring(3, 15);   // 次の12桁 (品番)
+                    return result;
+                }
+            }
+
+            // 2. 工程内かんばんの解析（正規表現で末尾付近の規則を探す）
+            // 法則: 12文字の英数字 + スペース + 3桁の数字 + ハイフン
+            let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
+            if (match) {
+                result.type = 'inprocess';
+                result.partNum = match[1];  // 12桁の品番
+                result.baseNum = match[2];  // 3桁の背番号
+                return result;
+            }
+
+            // もしマッチしなかった場合は「不明なQR」として返す
+            return result;
+        }
+
         function onScanSuccess(decodedText, decodedResult) {
             if (!canScan || step === 3) return;
+
+            // 読み取ったデータを即座に解析する
+            let parsed = parseKanban(decodedText);
+
+            // 関係ないQRを読んだ場合のポカヨケ
+            if (parsed.type === 'unknown') {
+                playNgSound();
+                alert("エラー：かんばんのQRコードではありません。\n\n読取内容：\n" + decodedText);
+                pauseScanning(2000);
+                return;
+            }
+
             if (navigator.vibrate) navigator.vibrate(50);
             playScanSound();
 
             if (step === 1) {
-                kanban1Data = decodedText;
-                document.getElementById('data1').innerText = kanban1Data;
-                document.getElementById('data1').style.color = "var(--text-main)";
+                k1Parsed = parsed;
+                document.getElementById('data1').innerText = "完了";
+                document.getElementById('parsed1').innerText = `${parsed.baseNum} / ${parsed.partNum}`;
+                document.getElementById('parsed1').className = "parsed-value";
+
                 document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
                 document.getElementById('instruction').style.color = "#ff9500";
                 step = 2; pauseScanning(1000);
+
             } else if (step === 2) {
-                kanban2Data = decodedText;
-                document.getElementById('data2').innerText = kanban2Data;
-                document.getElementById('data2').style.color = "var(--text-main)";
+                k2Parsed = parsed;
+                document.getElementById('data2').innerText = "完了";
+                document.getElementById('parsed2').innerText = `${parsed.baseNum} / ${parsed.partNum}`;
                 step = 3; checkMatch();
             }
         }
 
         function checkMatch() {
-            let isOk = kanban1Data === kanban2Data;
+            // 品番(12桁)と背番号(3桁)が両方一致しているかを判定する
+            let isOk = (k1Parsed.partNum === k2Parsed.partNum) && (k1Parsed.baseNum === k2Parsed.baseNum);
+            
             saveHistory(isOk);
 
             if (isOk) {
-                // OKの時：自動リセット
                 document.getElementById('ok-overlay').style.display = 'flex';
                 playOkSound();
                 if (navigator.vibrate) navigator.vibrate([100, 100, 100]);
                 setTimeout(() => {
                     document.getElementById('ok-overlay').style.display = 'none';
                     resetScanner();
-                }, 1500); // 1.5秒後に自動で次へ
+                }, 1500);
             } else {
-                // NGの時：ロック
+                document.getElementById('parsed1').classList.add('parsed-ng');
+                document.getElementById('parsed2').classList.add('parsed-ng');
                 document.getElementById('lock-screen').style.display = 'flex';
                 playNgSound();
                 if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
@@ -240,7 +295,11 @@
         function saveHistory(isOk) {
             const now = new Date();
             const timeStr = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + ':' + ('0' + now.getSeconds()).slice(-2);
-            historyData.unshift({ time: timeStr, k1: kanban1Data, k2: kanban2Data, result: isOk ? "OK" : "NG", isOk: isOk });
+            // 履歴には抽出したわかりやすいデータを残す
+            const k1Display = `${k1Parsed.baseNum} / ${k1Parsed.partNum}`;
+            const k2Display = `${k2Parsed.baseNum} / ${k2Parsed.partNum}`;
+            
+            historyData.unshift({ time: timeStr, k1: k1Display, k2: k2Display, result: isOk ? "OK" : "NG", isOk: isOk });
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
         }
@@ -266,7 +325,7 @@
         function exportAndShareCSV() {
             if (historyData.length === 0) return;
             const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            let csv = "日時,工程内,客先,判定\n";
+            let csv = "日時,工程内かんばん(抽出データ),客先かんばん(抽出データ),判定\n";
             historyData.forEach(item => csv += `"${item.time}","${item.k1}","${item.k2}","${item.result}"\n`);
             const blob = new Blob([bom, csv], { type: 'text/csv' });
             const file = new File([blob], "kanban_log.csv", { type: 'text/csv' });
@@ -279,11 +338,15 @@
 
         function resetScanner() {
             step = 1;
-            kanban1Data = ""; kanban2Data = "";
-            document.getElementById('data1').innerText = "未スキャン";
-            document.getElementById('data1').style.color = "#bbb";
-            document.getElementById('data2').innerText = "未スキャン";
-            document.getElementById('data2').style.color = "#bbb";
+            k1Parsed = null; k2Parsed = null;
+            document.getElementById('data1').innerText = "読取待機...";
+            document.getElementById('parsed1').innerText = "---";
+            document.getElementById('parsed1').className = "parsed-value";
+            
+            document.getElementById('data2').innerText = "読取待機...";
+            document.getElementById('parsed2').innerText = "---";
+            document.getElementById('parsed2').className = "parsed-value";
+            
             document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン";
             document.getElementById('instruction').style.color = "var(--primary-color)";
             pauseScanning(500);
