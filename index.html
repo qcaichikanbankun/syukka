@@ -234,52 +234,46 @@
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
         }
 
-                function startCamera() {
+        function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
             
+            // ★変更点1：qrbox（枠）を完全に削除。画面のどこにQRがあっても最高画質で検知させます。
             const config = { 
-                fps: 10, // あえて10に下げることで、1フレームあたりの解析時間を長くし高密度QRに強くする
-                qrbox: { width: 250, height: 250 }, // 枠を250に戻し、解析漏れを防ぐ
-                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ], // ★重要：QRコード「専用」に設定して処理速度を爆速化
-                videoConstraints: { 
-                    facingMode: "environment" // 余計な解像度指定を消し、iPhoneの標準オートフォーカスに任せる
-                }
+                fps: 15,
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ] // QR専用モードで爆速化
             };
 
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-            .then(() => { 
-                setupZoom(); 
-            }).catch(err => alert("カメラ起動失敗: " + err));
+            // ★変更点2：iPhoneのメインカメラをフルHD（1080p）で強制起動させる設定
+            const videoConstraints = {
+                facingMode: "environment",
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            };
+
+            // カメラ起動実行
+            html5QrCode.start(videoConstraints, config, onScanSuccess)
+            .then(() => {
+                // ズーム設定（iOSの仕様でブロックされる場合は無視されます）
+                const videoElement = document.querySelector("#reader video");
+                if (videoElement && videoElement.srcObject) {
+                    const videoTrack = videoElement.srcObject.getVideoTracks()[0];
+                    if (videoTrack && typeof videoTrack.getCapabilities === 'function') {
+                        const cap = videoTrack.getCapabilities();
+                        if (cap.zoom) {
+                            document.getElementById('zoom-panel').style.display = 'flex';
+                            const slider = document.getElementById('zoom-slider');
+                            slider.min = cap.zoom.min; slider.max = cap.zoom.max; slider.step = cap.zoom.step;
+                            slider.addEventListener('input', () => videoTrack.applyConstraints({ advanced: [{ zoom: slider.value }] }));
+                        }
+                    }
+                }
+            })
+            .catch(err => {
+                // 万が一フルHD起動に失敗した場合は、標準設定で保険のリトライ
+                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+            });
         }
 
-
-        function setupZoom() {
-            // ライブラリが画面上に生成したvideo要素を直接捕まえる
-            const videoElement = document.querySelector("#reader video");
-            if (!videoElement || !videoElement.srcObject) return;
-
-            // カメラの映像データ（トラック）を取得
-            const videoTrack = videoElement.srcObject.getVideoTracks()[0];
-            if (!videoTrack || typeof videoTrack.getCapabilities !== 'function') return;
-
-            const capabilities = videoTrack.getCapabilities();
-            
-            // スマホがブラウザからのズーム操作を許可している場合のみスライダーを表示
-            if (capabilities.zoom) {
-                const zoomPanel = document.getElementById('zoom-panel');
-                const zoomSlider = document.getElementById('zoom-slider');
-                zoomPanel.style.display = 'flex';
-                zoomSlider.min = capabilities.zoom.min;
-                zoomSlider.max = capabilities.zoom.max;
-                zoomSlider.step = capabilities.zoom.step;
-                zoomSlider.value = videoTrack.getSettings().zoom || 1;
-
-                zoomSlider.addEventListener('input', () => {
-                    videoTrack.applyConstraints({ advanced: [{ zoom: zoomSlider.value }] })
-                        .catch(err => console.log("ズーム操作エラー:", err));
-                });
-            }
-        }
 
 
         function checkPassword() {
