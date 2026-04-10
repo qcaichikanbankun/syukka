@@ -234,21 +234,24 @@
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
         }
 
-        function startCamera() {
+                function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
+            
             const config = { 
-                fps: 25, 
-                qrbox: { width: 160, height: 160 }, 
-                aspectRatio: 1.0,
-                videoConstraints: {
-                    facingMode: "environment",
-                    width: { min: 1280, ideal: 1920 },
-                    height: { min: 720, ideal: 1080 }
+                fps: 10, // あえて10に下げることで、1フレームあたりの解析時間を長くし高密度QRに強くする
+                qrbox: { width: 250, height: 250 }, // 枠を250に戻し、解析漏れを防ぐ
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ], // ★重要：QRコード「専用」に設定して処理速度を爆速化
+                videoConstraints: { 
+                    facingMode: "environment" // 余計な解像度指定を消し、iPhoneの標準オートフォーカスに任せる
                 }
             };
+
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-            .then(() => { setupZoom(); }).catch(err => alert("カメラ起動失敗: " + err));
+            .then(() => { 
+                setupZoom(); 
+            }).catch(err => alert("カメラ起動失敗: " + err));
         }
+
 
         function setupZoom() {
             // ライブラリが画面上に生成したvideo要素を直接捕まえる
