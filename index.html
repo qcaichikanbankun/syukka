@@ -268,7 +268,33 @@
             });
         }
 
+        function setupZoom() {
+            // ライブラリが画面上に生成したvideo要素を直接捕まえる
+            const videoElement = document.querySelector("#reader video");
+            if (!videoElement || !videoElement.srcObject) return;
 
+            // カメラの映像データ（トラック）を取得
+            const videoTrack = videoElement.srcObject.getVideoTracks()[0];
+            if (!videoTrack || typeof videoTrack.getCapabilities !== 'function') return;
+
+            const capabilities = videoTrack.getCapabilities();
+
+            // スマホがブラウザからのズーム操作を許可している場合のみスライダーを表示
+            if (capabilities.zoom) {
+                const zoomPanel = document.getElementById('zoom-panel');
+                const zoomSlider = document.getElementById('zoom-slider');
+                zoomPanel.style.display = 'flex';
+                zoomSlider.min = capabilities.zoom.min;
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.step = capabilities.zoom.step;
+                zoomSlider.value = videoTrack.getSettings().zoom || 1;
+
+                zoomSlider.addEventListener('input', () => {
+                    videoTrack.applyConstraints({ advanced: [{ zoom: zoomSlider.value }] })
+                        .catch(err => console.log("ズーム操作エラー:", err));
+                });
+            }
+        }
 
 
 
