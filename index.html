@@ -11,15 +11,12 @@
             --success-color: #34c759;
             --danger-color: #ff3b30;
             --card-bg: rgba(255, 255, 255, 0.95);
-            --text-main: #1c1c1e;
-            --text-sub: #8e8e93;
         }
 
         body {
-            font-family: 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'SF Pro Text', sans-serif;
             margin: 0; padding: 0;
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-            color: var(--text-main);
             height: 100vh; overflow: hidden; 
             display: flex; flex-direction: column; align-items: center;
         }
@@ -30,18 +27,15 @@
             display: flex; flex-direction: column;
         }
 
-        h1 { font-size: 1.1rem; text-align: center; color: #fff; margin: 5px 0; font-weight: 800; }
-
-        .glass-card {
-            background: var(--card-bg); backdrop-filter: blur(10px);
-            border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            padding: 8px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.4);
-        }
-
-        .camera-card { padding: 5px; }
+        .camera-card { padding: 5px; position: relative; }
         #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
-        /* ビデオの表示を調整 */
-        #reader video { width: 100% !important; max-height: 38vh !important; object-fit: cover !important; }
+        #reader video { width: 100% !important; max-height: 40vh !important; object-fit: cover !important; }
+
+        .zoom-container {
+            margin: 5px 0; padding: 10px; background: rgba(0,0,0,0.6);
+            border-radius: 10px; color: white; display: flex; align-items: center; gap: 10px;
+        }
+        .zoom-container input { flex-grow: 1; accent-color: var(--primary-color); }
 
         .instruction {
             font-size: 1rem; font-weight: bold; color: var(--primary-color);
@@ -54,56 +48,26 @@
             background: #f2f2f7; padding: 5px; border-radius: 6px;
             text-align: center; border: 1px solid #e5e5ea;
         }
-        .data-box .label { font-size: 0.7rem; color: var(--text-sub); }
-        .data-box .value { font-size: 0.75rem; word-break: break-all; margin-top: 2px; color: #888; height: 1.2em; overflow: hidden; }
-        .data-box .parsed-value { font-size: 0.9rem; font-weight: bold; color: var(--primary-color); margin-top: 4px; }
-        .parsed-ng { color: var(--danger-color) !important; }
+        .data-box .label { font-size: 0.7rem; color: #8e8e93; }
+        .data-box .parsed-value { font-size: 0.85rem; font-weight: bold; color: var(--primary-color); margin-top: 2px; }
 
-        .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; }
+        .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; background: var(--card-bg); border-radius: 12px; padding: 8px; }
         .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .history-header h2 { margin: 0; font-size: 0.9rem; }
-        
-        .btn { border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-        .btn-csv { background: var(--success-color); color: white; }
-        .btn-clear { background: #e5e5ea; color: var(--text-main); }
-
-        .table-container { flex-grow: 1; overflow-y: auto; border-radius: 6px; border: 1px solid #e5e5ea; }
+        .table-container { flex-grow: 1; overflow-y: auto; border: 1px solid #e5e5ea; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
-        th, td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #e5e5ea; word-break: break-all;}
-        th { background-color: #f2f2f7; position: sticky; top: 0; z-index: 10; color: var(--text-sub); }
+        th, td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #e5e5ea; }
+        th { background: #f2f2f7; position: sticky; top: 0; }
         .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
         .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
 
-        .overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white;
-        }
-        .result-text { font-size: 5rem; font-weight: 900; margin-bottom: 10px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .match-ok { background: linear-gradient(135deg, #34c759 0%, #28a745 100%); }
-        
-        #lock-screen { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); text-align: center; }
-        .lock-box {
-            background: white; padding: 25px; border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--text-main);
-            width: 80%; max-width: 300px;
-        }
-        .lock-box h3 { margin: 0 0 15px 0; color: var(--danger-color); }
-        .pw-input {
-            width: 100%; padding: 15px; font-size: 1.5rem; text-align: center;
-            border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px;
-            -webkit-text-security: disc;
-        }
-        .btn-unlock {
-            width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold;
-            background: var(--text-main); color: white; border: none; border-radius: 10px;
-        }
+        .match-ng { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); }
+        .lock-box { background: white; padding: 20px; border-radius: 20px; color: #1c1c1e; width: 80%; max-width: 300px; text-align: center; }
+        .pw-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin: 10px 0; }
 
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
-        }
-        .btn-start { padding: 15px 40px; font-size: 1.2rem; font-weight: bold; border-radius: 30px; background: white; color: #764ba2; border: none; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #764ba2; z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
+        .btn-start { padding: 15px 40px; font-size: 1.2rem; border-radius: 30px; border: none; background: white; color: #764ba2; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -114,44 +78,59 @@
     </div>
 
     <div class="app-container">
-        <h1>かんばん照合ツール</h1>
-        <div class="glass-card camera-card"><div id="reader"></div></div>
-        <div class="glass-card">
+        <h1 style="font-size: 1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合ツール</h1>
+        
+        <div class="glass-card camera-card">
+            <div id="reader"></div>
+            <div class="zoom-container" id="zoom-panel" style="display:none;">
+                <span style="font-size:0.8rem;">🔍 ズーム</span>
+                <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div class="glass-card" style="background:var(--card-bg); padding:8px; border-radius:12px; margin-bottom:8px;">
             <div id="instruction" class="instruction">1. 工程内かんばんをスキャン</div>
             <div class="status-grid">
                 <div class="data-box">
                     <div class="label">工程内</div>
-                    <div id="data1" class="value">読取待機...</div>
                     <div id="parsed1" class="parsed-value">---</div>
                 </div>
                 <div class="data-box">
                     <div class="label">客先</div>
-                    <div id="data2" class="value">読取待機...</div>
                     <div id="parsed2" class="parsed-value">---</div>
                 </div>
             </div>
         </div>
-        <div class="glass-card history-card">
+
+        <div class="history-card">
             <div class="history-header">
-                <h2 id="history-count">履歴 (0件)</h2>
-                <div><button class="btn btn-clear" onclick="clearHistory()">消去</button><button class="btn btn-csv" onclick="exportAndShareCSV()">CSV</button></div>
+                <span id="history-count" style="font-size:0.8rem; font-weight:bold;">履歴 (0)</span>
+                <div>
+                    <button onclick="clearHistory()" style="font-size:0.7rem; padding:4px 8px;">消去</button>
+                    <button onclick="autoSendCSV()" style="font-size:0.7rem; padding:4px 8px; background:var(--success-color); color:white; border:none; border-radius:4px;">CSV送信</button>
+                </div>
             </div>
-            <div class="table-container"><table><thead><tr><th style="width: 25%">日付/時間</th><th style="width: 30%">工程(抽出)</th><th style="width: 30%">客先(抽出)</th><th style="width: 15%">判定</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>日付/時間</th><th>工程</th><th>客先</th><th>判定</th></tr></thead>
+                    <tbody id="history-tbody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <div id="ok-overlay" class="overlay match-ok">
-        <div class="result-text">OK</div>
-        <div style="font-size: 1.2rem;">一致を確認</div>
+        <div style="font-size: 5rem; font-weight: 900;">OK</div>
+        <div style="font-size: 1.2rem;">照合一致</div>
     </div>
 
-    <div id="lock-screen" class="overlay">
-        <div class="result-text" style="margin-bottom: 10px;">NG!!</div>
+    <div id="lock-screen" class="overlay match-ng">
+        <div style="font-size: 4rem; font-weight: 900; margin-bottom: 20px;">NG!!</div>
         <div class="lock-box">
-            <h3>ロック中</h3>
-            <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">不一致：責任者が解除してください</p>
+            <h3 style="color:var(--danger-color); margin:0;">不一致ロック</h3>
+            <p style="font-size:0.8rem; color:#666;">パスワードを入力してください</p>
             <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
-            <button class="btn-unlock" onclick="checkPassword()">解除</button>
+            <button onclick="checkPassword()" style="width:100%; padding:12px; background:#1c1c1e; color:white; border:none; border-radius:10px; font-weight:bold;">解除</button>
         </div>
     </div>
 
@@ -172,26 +151,9 @@
             startCamera();
         }
 
-        function playTone(frequency, type, duration) {
-            if (!audioCtx) return;
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.type = type;
-            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start(); oscillator.stop(audioCtx.currentTime + duration);
-        }
-
-        function playScanSound() { playTone(1200, 'sine', 0.1); }
-        function playOkSound() { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); }
-        function playNgSound() { playTone(300, 'sawtooth', 0.6); }
-
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
-            let result = { type: 'unknown', partNum: '', baseNum: '', raw: cleanText };
+            let result = { type: 'unknown', partNum: '', baseNum: '' };
 
             let parts = cleanText.split(/\s+/);
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
@@ -214,31 +176,22 @@
             return result;
         }
 
-        function onScanSuccess(decodedText, decodedResult) {
+        function onScanSuccess(decodedText) {
             if (!canScan || step === 3) return;
             let parsed = parseKanban(decodedText);
-
-            if (parsed.type === 'unknown') {
-                playNgSound();
-                alert("エラー：規格外のQRです\n内容：" + decodedText.substring(0,20) + "...");
-                pauseScanning(2000);
-                return;
-            }
+            if (parsed.type === 'unknown') return; 
 
             if (navigator.vibrate) navigator.vibrate(50);
-            playScanSound();
-
+            
             if (step === 1) {
                 k1Parsed = parsed;
-                document.getElementById('data1').innerText = "完了";
-                document.getElementById('parsed1').innerText = `${parsed.baseNum}-${parsed.partNum}`;
+                document.getElementById('parsed1').innerText = `${parsed.baseNum}/${parsed.partNum}`;
                 document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
                 document.getElementById('instruction').style.color = "#ff9500";
                 step = 2; pauseScanning(1000);
             } else if (step === 2) {
                 k2Parsed = parsed;
-                document.getElementById('data2').innerText = "完了";
-                document.getElementById('parsed2').innerText = `${parsed.baseNum}-${parsed.partNum}`;
+                document.getElementById('parsed2').innerText = `${parsed.baseNum}/${parsed.partNum}`;
                 step = 3; checkMatch();
             }
         }
@@ -246,18 +199,74 @@
         function checkMatch() {
             let isOk = (k1Parsed.partNum === k2Parsed.partNum) && (k1Parsed.baseNum === k2Parsed.baseNum);
             saveHistory(isOk);
-
             if (isOk) {
                 document.getElementById('ok-overlay').style.display = 'flex';
-                playOkSound();
-                setTimeout(() => {
-                    document.getElementById('ok-overlay').style.display = 'none';
-                    resetScanner();
-                }, 1500);
+                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; resetScanner(); }, 1500);
             } else {
                 document.getElementById('lock-screen').style.display = 'flex';
-                playNgSound();
                 document.getElementById('pw-input').focus();
+            }
+        }
+
+        function saveHistory(isOk) {
+            const now = new Date();
+            historyData.unshift({ 
+                date: now.toLocaleDateString(), 
+                time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}), 
+                k1: `${k1Parsed.baseNum}/${k1Parsed.partNum}`, 
+                k2: `${k2Parsed.baseNum}/${k2Parsed.partNum}`, 
+                result: isOk ? "OK" : "NG", isOk: isOk 
+            });
+            localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = historyData.map(item => `
+                <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
+                    <td>${item.date}<br>${item.time}</td>
+                    <td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>
+                </tr>
+            `).join('');
+            document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
+        }
+
+        function startCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { 
+                fps: 25, 
+                qrbox: { width: 160, height: 160 }, // 小さな固定枠でオートフォーカスを最適化
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { min: 1280, ideal: 1920 },
+                    height: { min: 720, ideal: 1080 }
+                }
+            };
+
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+            .then(() => {
+                setupZoom();
+            }).catch(err => alert("カメラ起動失敗: " + err));
+        }
+
+        function setupZoom() {
+            const videoTrack = html5QrCode.getActiveTrack();
+            const capabilities = videoTrack.getCapabilities();
+            
+            if (capabilities.zoom) {
+                const zoomPanel = document.getElementById('zoom-panel');
+                const zoomSlider = document.getElementById('zoom-slider');
+                zoomPanel.style.display = 'flex';
+                zoomSlider.min = capabilities.zoom.min;
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.step = capabilities.zoom.step;
+                zoomSlider.value = videoTrack.getSettings().zoom || 1;
+
+                zoomSlider.addEventListener('input', () => {
+                    videoTrack.applyConstraints({ advanced: [{ zoom: zoomSlider.value }] });
+                });
             }
         }
 
@@ -266,65 +275,11 @@
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('pw-input').value = "";
                 resetScanner();
-            } else {
-                alert("パスワードが違います");
-                document.getElementById('pw-input').value = "";
-            }
-        }
-
-        function saveHistory(isOk) {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString(); // 日付
-            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}); // 時間
-            
-            historyData.unshift({ 
-                date: dateStr, 
-                time: timeStr, 
-                k1: `${k1Parsed.baseNum}/${k1Parsed.partNum}`, 
-                k2: `${k2Parsed.baseNum}/${k2Parsed.partNum}`, 
-                result: isOk ? "OK" : "NG", 
-                isOk: isOk 
-            });
-            localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
-            renderHistory();
-        }
-
-        function renderHistory() {
-            const tbody = document.getElementById('history-tbody');
-            tbody.innerHTML = '';
-            historyData.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = item.isOk ? 'row-ok' : 'row-ng';
-                tr.innerHTML = `<td>${item.date}<br>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>`;
-                tbody.appendChild(tr);
-            });
-            document.getElementById('history-count').innerText = `履歴 (${historyData.length}件)`;
-        }
-
-        function clearHistory() {
-            if (confirm("履歴をすべて消去しますか？")) {
-                historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory();
-            }
-        }
-
-        function exportAndShareCSV() {
-            if (historyData.length === 0) return;
-            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            let csv = "日付,時間,工程内(抽出),客先(抽出),判定\n";
-            historyData.forEach(item => csv += `"${item.date}","${item.time}","${item.k1}","${item.k2}","${item.result}"\n`);
-            const blob = new Blob([bom, csv], { type: 'text/csv' });
-            const file = new File([blob], "kanban_log.csv", { type: 'text/csv' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ title: '照合履歴', files: [file] });
-            } else {
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "kanban_log.csv"; a.click();
-            }
+            } else { alert("PASS間違い"); document.getElementById('pw-input').value = ""; }
         }
 
         function resetScanner() {
             step = 1; k1Parsed = null; k2Parsed = null;
-            document.getElementById('data1').innerText = "読取待機...";
-            document.getElementById('data2').innerText = "読取待機...";
             document.getElementById('parsed1').innerText = "---";
             document.getElementById('parsed2').innerText = "---";
             document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン";
@@ -332,19 +287,35 @@
             pauseScanning(500);
         }
 
-        function pauseScanning(ms) {
-            canScan = false; setTimeout(() => { canScan = true; }, ms);
-        }
+        function pauseScanning(ms) { canScan = false; setTimeout(() => { canScan = true; }, ms); }
 
-        function startCamera() {
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { 
-                fps: 20, // 秒間20回スキャン（向上）
-                qrbox: { width: 250, height: 250 }, // 読み取り枠を拡大
-                aspectRatio: 1.0 // スクエアに固定してフォーカスを安定化
-            };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-                .catch(err => alert("カメラ起動エラー: " + err));
+        function clearHistory() { if (confirm("全消去？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
+        
+        // ★★★ iPhoneショートカット呼び出し機能 ★★★
+        function autoSendCSV() {
+            if (historyData.length === 0) { 
+                alert("送信するデータがありません。"); 
+                return; 
+            }
+
+            // CSVテキストデータの生成
+            let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.result}"`).join("\n");
+
+            // ショートカットの名前（iPhone側で設定する名前と完全に一致させる）
+            const shortcutName = encodeURIComponent("かんばんCSV送信");
+            const encodedCsv = encodeURIComponent(csv);
+
+            // iPhoneのショートカットアプリを起動し、データを渡す
+            window.location.href = `shortcuts://run-shortcut?name=${shortcutName}&input=${encodedCsv}`;
+
+            // 1.5秒後に履歴をリセットするか確認する
+            setTimeout(() => {
+                if (confirm("ショートカットへデータを渡しました。画面上の履歴をリセットしますか？")) {
+                    historyData = []; 
+                    localStorage.removeItem('kanbanHistory'); 
+                    renderHistory();
+                }
+            }, 1500);
         }
     </script>
 </body>
