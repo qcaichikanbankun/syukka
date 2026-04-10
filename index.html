@@ -7,25 +7,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="かんばん照合">
     <title>かんばん照合システム</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --primary-color: #007aff; --success-color: #34c759; --danger-color: #ff3b30; --card-bg: rgba(255, 255, 255, 0.95); }
         body { font-family: 'SF Pro Text', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         .app-container { width: 100%; max-width: 500px; height: 100%; padding: 25px 10px 10px 10px; box-sizing: border-box; display: flex; flex-direction: column; }
 
-        .camera-card { padding: 5px; text-align: center; background: var(--card-bg); border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; position: relative;}
-        #reader video { width: 100% !important; max-height: 35vh !important; object-fit: cover !important; }
+        .camera-card { padding: 20px 10px; text-align: center; background: var(--card-bg); border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+        .btn-scan { width: 100%; padding: 20px; font-size: 1.3rem; background: var(--primary-color); color: white; border: none; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,122,255,0.3); margin-bottom: 10px; }
 
-        /* カメラ選択用プルダウン */
-        .camera-select-container { margin: 5px 0; }
-        #camera-select { width: 90%; padding: 8px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
-
-        .instruction { font-size: 1rem; font-weight: bold; color: var(--primary-color); text-align: center; padding: 5px; background: rgba(0, 122, 255, 0.1); border-radius: 8px; margin-bottom: 5px; }
         .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-        .data-box { background: #f2f2f7; padding: 5px; border-radius: 6px; text-align: center; border: 1px solid #e5e5ea; }
-        .data-box .label { font-size: 0.7rem; color: #8e8e93; }
-        .data-box .parsed-value { font-size: 0.85rem; font-weight: bold; color: var(--primary-color); margin-top: 2px; }
+        .data-box { background: #f2f2f7; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #e5e5ea; }
+        .data-box .label { font-size: 0.8rem; color: #8e8e93; }
+        .data-box .parsed-value { font-size: 1.1rem; font-weight: bold; color: var(--primary-color); margin-top: 5px; }
 
         .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; background: var(--card-bg); border-radius: 12px; padding: 8px;}
         .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
@@ -41,34 +34,22 @@
         .match-ng { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); }
         .lock-box { background: white; padding: 20px; border-radius: 20px; color: #1c1c1e; width: 80%; max-width: 300px; text-align: center; }
         .pw-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin: 10px 0; }
-
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #764ba2; z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
-        .btn-start { padding: 15px 40px; font-size: 1.2rem; border-radius: 30px; border: none; background: white; color: #764ba2; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="start-screen">
-        <h2 style="margin-bottom: 30px;">かんばん照合システム</h2>
-        <button class="btn-start" onclick="initApp()">作業を開始する</button>
-    </div>
-
     <div class="app-container">
-        <h1 style="font-size: 1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合ツール</h1>
+        <h1 style="font-size: 1.2rem; color: white; text-align: center; margin: 5px 0;">かんばん照合</h1>
 
         <div class="camera-card">
-            <div id="reader"></div>
-            <div class="camera-select-container">
-                <select id="camera-select" onchange="changeCamera()"></select>
-            </div>
-            <p style="font-size: 0.7rem; color: #666; margin: 2px 0;">※ピントが合わない場合は別のレンズに切り替えてください</p>
+            <button class="btn-scan" onclick="startShortcutScan()">📷 スキャンを開始する</button>
+            <p style="font-size: 0.75rem; color: #666; margin: 0;">工程内 ➔ 客先の順に2回読み取ります</p>
         </div>
 
-        <div class="glass-card" style="background:var(--card-bg); padding:8px; border-radius:12px; margin-bottom: 8px;">
-            <div id="instruction" class="instruction">1. 工程内かんばんをスキャン</div>
+        <div class="camera-card" style="padding: 10px;">
             <div class="status-grid">
-                <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div>
-                <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
+                <div class="data-box"><div class="label">工程内かんばん</div><div id="parsed1" class="parsed-value">---</div></div>
+                <div class="data-box"><div class="label">客先かんばん</div><div id="parsed2" class="parsed-value">---</div></div>
             </div>
         </div>
 
@@ -101,91 +82,32 @@
     </div>
 
     <script>
-        let html5QrCode;
-        let step = 1; let k1Parsed = null; let k2Parsed = null; let canScan = true;
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        let audioCtx;
-        let availableCameras = [];
 
-        function initApp() {
-            document.getElementById('start-screen').style.display = 'none';
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
+        // ページが読み込まれた時に、ショートカットから送られてきたデータがあるかチェックする
+        window.onload = function() {
             renderHistory();
 
-            html5QrCode = new Html5Qrcode("reader");
+            // URLにくっついてきたデータ（パラメータ）を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const k1Data = urlParams.get('k1');
+            const k2Data = urlParams.get('k2');
 
-            // 使用可能なカメラレンズをすべて取得する
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length) {
-                    availableCameras = devices;
-                    const select = document.getElementById('camera-select');
-                    // 背面カメラ（Back）を優先してリストに追加
-                    devices.forEach(device => {
-                        const option = document.createElement('option');
-                        option.value = device.id;
-                        // 名前を分かりやすく翻訳
-                        let name = device.label || `カメラ ${select.length + 1}`;
-                        if (name.toLowerCase().includes('back') || name.toLowerCase().includes('背面')) name = "📷 背面: " + name;
-                        if (name.toLowerCase().includes('front') || name.toLowerCase().includes('前面')) name = "👤 前面: " + name;
-                        option.text = name;
-                        select.appendChild(option);
-                    });
+            if (k1Data && k2Data) {
+                // データがあれば判定処理へ進む
+                processScanData(k1Data, k2Data);
 
-                    // 最初は一番最後のカメラ（iPhoneの場合、望遠や広角が後ろに来やすい）を選択してみる
-                    const defaultCameraId = devices[devices.length - 1].id;
-                    select.value = defaultCameraId;
-                    startCameraById(defaultCameraId);
-                }
-            }).catch(err => {
-                alert("カメラの取得に失敗しました: " + err);
-            });
-        }
-
-        // 選択されたカメラで起動する処理
-        function startCameraById(cameraId) {
-            if (html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    runScanner(cameraId);
-                });
-            } else {
-                runScanner(cameraId);
+                // 何度も判定しないようにURLのデータを消してスッキリさせる
+                window.history.replaceState(null, '', window.location.pathname);
             }
+        };
+
+        // ショートカットアプリを起動する関数
+        function startShortcutScan() {
+            // "かんばんスキャン" という名前のショートカットを呼び出す
+            const shortcutName = encodeURIComponent("かんばんスキャン");
+            window.location.href = `shortcuts://run-shortcut?name=${shortcutName}`;
         }
-
-        // カメラ切り替え用
-        function changeCamera() {
-            const select = document.getElementById('camera-select');
-            startCameraById(select.value);
-        }
-
-        function runScanner(cameraId) {
-            // QRコードと、自動車部品でよく使われるData Matrixの両方をサポート
-            const config = {
-                fps: 15,
-                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.DATA_MATRIX ]
-            };
-
-            html5QrCode.start(cameraId, config, onScanSuccess)
-            .catch(err => console.log("起動エラー", err));
-        }
-
-        // --- 以下はこれまでの機能と同じ ---
-
-        function playTone(frequency, type, duration) {
-            if (!audioCtx) return;
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.type = type;
-            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
-            oscillator.start(); oscillator.stop(audioCtx.currentTime + duration);
-        }
-
-        function playOkSound() { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); }
-        function playNgSound() { playTone(300, 'sawtooth', 0.6); }
 
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
@@ -204,47 +126,40 @@
             return result;
         }
 
-        function onScanSuccess(decodedText) {
-            if (!canScan || step === 3) return;
-            let parsed = parseKanban(decodedText);
-            if (parsed.type === 'unknown') return;
+        // 送られてきたデータを判定する処理
+        function processScanData(k1Data, k2Data) {
+            const k1Parsed = parseKanban(decodeURIComponent(k1Data));
+            const k2Parsed = parseKanban(decodeURIComponent(k2Data));
 
-            if (navigator.vibrate) navigator.vibrate(50);
+            // 画面に抽出結果を表示
+            document.getElementById('parsed1').innerText = k1Parsed.type !== 'unknown' ? `${k1Parsed.baseNum}/${k1Parsed.partNum}` : "エラー(規格外)";
+            document.getElementById('parsed2').innerText = k2Parsed.type !== 'unknown' ? `${k2Parsed.baseNum}/${k2Parsed.partNum}` : "エラー(規格外)";
 
-            if (step === 1) {
-                k1Parsed = parsed;
-                document.getElementById('parsed1').innerText = `${parsed.baseNum}/${parsed.partNum}`;
-                document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
-                document.getElementById('instruction').style.color = "#ff9500";
-                step = 2; pauseScanning(1000);
-            } else if (step === 2) {
-                k2Parsed = parsed;
-                document.getElementById('parsed2').innerText = `${parsed.baseNum}/${parsed.partNum}`;
-                step = 3; checkMatch();
+            if (k1Parsed.type === 'unknown' || k2Parsed.type === 'unknown') {
+                alert("規格外のQRコードが読み込まれました。");
+                return;
             }
-        }
 
-        function checkMatch() {
+            // 一致判定
             let isOk = (k1Parsed.partNum === k2Parsed.partNum) && (k1Parsed.baseNum === k2Parsed.baseNum);
-            saveHistory(isOk);
-            if (isOk) {
-                document.getElementById('ok-overlay').style.display = 'flex';
-                playOkSound();
-                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; resetScanner(); }, 1500);
-            } else {
-                document.getElementById('lock-screen').style.display = 'flex';
-                playNgSound();
-                document.getElementById('pw-input').focus();
-            }
-        }
 
-        function saveHistory(isOk) {
+            // 履歴保存
             const now = new Date();
             historyData.unshift({
                 date: now.toLocaleDateString(), time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
                 k1: `${k1Parsed.baseNum}/${k1Parsed.partNum}`, k2: `${k2Parsed.baseNum}/${k2Parsed.partNum}`, result: isOk ? "OK" : "NG", isOk: isOk
             });
-            localStorage.setItem('kanbanHistory', JSON.stringify(historyData)); renderHistory();
+            localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
+            renderHistory();
+
+            // 画面のエフェクト
+            if (isOk) {
+                document.getElementById('ok-overlay').style.display = 'flex';
+                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500);
+            } else {
+                document.getElementById('lock-screen').style.display = 'flex';
+                document.getElementById('pw-input').focus();
+            }
         }
 
         function renderHistory() {
@@ -258,18 +173,10 @@
         function checkPassword() {
             if (document.getElementById('pw-input').value === "8181") {
                 document.getElementById('lock-screen').style.display = 'none';
-                document.getElementById('pw-input').value = ""; resetScanner();
+                document.getElementById('pw-input').value = "";
             } else { alert("PASS間違い"); document.getElementById('pw-input').value = ""; }
         }
 
-        function resetScanner() {
-            step = 1; k1Parsed = null; k2Parsed = null;
-            document.getElementById('parsed1').innerText = "---"; document.getElementById('parsed2').innerText = "---";
-            document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン"; document.getElementById('instruction').style.color = "var(--primary-color)";
-            pauseScanning(500);
-        }
-
-        function pauseScanning(ms) { canScan = false; setTimeout(() => { canScan = true; }, ms); }
         function clearHistory() { if (confirm("全消去？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
 
         function autoSendCSV() {
