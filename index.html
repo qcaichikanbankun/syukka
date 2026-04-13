@@ -42,7 +42,7 @@
         <h1 style="font-size: 1.1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合・出荷管理</h1>
         
         <div class="camera-card">
-            <button class="btn-scan" onclick="startShortcutScan()">📷 スキャン開始</button>
+            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 スキャン開始</button>
             <div class="status-grid">
                 <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div>
                 <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
@@ -67,7 +67,6 @@
     </div>
 
     <div id="ok-overlay" class="overlay match-ok"><div style="font-size: 5rem; font-weight: 900;">OK</div></div>
-
     <div id="lock-screen" class="overlay match-ng">
         <div style="font-size: 4rem; font-weight: 900; margin-bottom: 20px;">NG!!</div>
         <div class="lock-box">
@@ -79,40 +78,68 @@
 
     <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // オーディオコンテキストの初期化（この時点では停止状態）
+        let AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = new AudioContext();
 
-        // 音を生成する関数
+        // 音を鳴らす関数
         function playSound(type) {
+            // ブラウザによって停止されている場合は再開を試みる
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
             if (type === 'ok') {
+                // 高い音：ポーン
                 osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
             } else {
+                // 低い音：ブー（ノコギリ波）
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(200, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
             }
         }
 
         window.onload = function() {
             renderHistory();
+
+            // iPhone対策：画面のどこかを初めて触った時にオーディオを有効化する
+            document.body.addEventListener('touchstart', function() {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }, { once: true });
+
             const urlParams = new URLSearchParams(window.location.search);
-            const k1 = urlParams.get('k1'); const k2 = urlParams.get('k2');
+            const k1 = urlParams.get('k1');
+            const k2 = urlParams.get('k2');
+            
             if (k1 && k2) {
-                setTimeout(() => processScanData(k1, k2), 100);
+                // ショートカットから戻ってきた時に判定を実行
+                // わずかに遅延させることでiOSの音再生制限を回避
+                setTimeout(() => processScanData(k1, k2), 300);
                 window.history.replaceState(null, '', window.location.pathname);
             }
         };
 
         function startShortcutScan() {
-            audioCtx.resume(); // iPhone音出し有効化
+            // ボタンを押した瞬間にオーディオコンテキストを再開（必須）
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
             location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`;
         }
 
@@ -131,7 +158,11 @@
         function processScanData(k1Raw, k2Raw) {
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
-            if (!p1 || !p2) { alert("規格外エラー"); return; }
+
+            if (!p1 || !p2) {
+                alert("かんばん規格外エラー：正しく読み取れませんでした。");
+                return;
+            }
 
             document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
             document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
@@ -171,14 +202,13 @@
             if (document.getElementById('pw-input').value === "8181") {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('pw-input').value = "";
-            } else { alert("PASS間違い"); }
+            } else { alert("パスワードが違います"); }
         }
 
-        function clearHistory() { if (confirm("消去？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
+        function clearHistory() { if (confirm("履歴をすべて消去しますか？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
         
-        // ★CSV送信関数復活★
         function autoSendCSV() {
-            if (historyData.length === 0) { alert("データなし"); return; }
+            if (historyData.length === 0) { alert("送信するデータがありません。"); return; }
             let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
             const shortcutName = encodeURIComponent("かんばんCSV送信");
             const encodedCsv = encodeURIComponent(csv);
