@@ -42,7 +42,7 @@
         <h1 style="font-size: 1.1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合・出荷管理</h1>
         
         <div class="camera-card">
-            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 スキャン開始</button>
+            <button class="btn-scan" onclick="startShortcutScan()">📷 スキャン開始</button>
             <div class="status-grid">
                 <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div>
                 <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
@@ -78,113 +78,97 @@
 
     <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        // オーディオコンテキストの初期化（この時点では停止状態）
-        let AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = new AudioContext();
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 音を鳴らす関数
+        // ★音を鳴らす機能★
         function playSound(type) {
-            // ブラウザによって停止されている場合は再開を試みる
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
             if (type === 'ok') {
-                // 高い音：ポーン
                 osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
             } else {
-                // 低い音：ブー（ノコギリ波）
-                osc.type = 'sawtooth';
+                osc.type = 'sawtooth'; 
                 osc.frequency.setValueAtTime(200, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.6);
             }
+            osc.start(); osc.stop(audioCtx.currentTime + 0.6);
         }
 
+        // ★初期読み込み時＆データ受け取り時の処理★
         window.onload = function() {
             renderHistory();
-
-            // iPhone対策：画面のどこかを初めて触った時にオーディオを有効化する
-            document.body.addEventListener('touchstart', function() {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+            
+            // 画面タッチで音の制限を解除（iPhone対策）
+            document.body.addEventListener('touchstart', () => { 
+                if (audioCtx.state === 'suspended') audioCtx.resume(); 
             }, { once: true });
 
             const urlParams = new URLSearchParams(window.location.search);
-            const k1 = urlParams.get('k1');
-            const k2 = urlParams.get('k2');
-            
+            const k1 = urlParams.get('k1'); const k2 = urlParams.get('k2');
             if (k1 && k2) {
-                // ショートカットから戻ってきた時に判定を実行
-                // わずかに遅延させることでiOSの音再生制限を回避
+                // 音の鳴り始めをスムーズにするため少し遅延
                 setTimeout(() => processScanData(k1, k2), 300);
+                // 履歴に不要なURLパラメータを残さないように上書き
                 window.history.replaceState(null, '', window.location.pathname);
             }
         };
 
+        // ★スキャン開始（ショートカット呼び出し）★
         function startShortcutScan() {
-            // ボタンを押した瞬間にオーディオコンテキストを再開（必須）
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            // location.replace を使ってタブ増殖を防止
+            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
         }
 
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let parts = cleanText.split(/\s+/);
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
-                let b5 = parts[4];
-                return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
+                let b5 = parts[4]; return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
             }
             let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
             if (match) return { part: match[1], base: match[2] };
             return null;
         }
 
+        // ★照合・判定機能★
         function processScanData(k1Raw, k2Raw) {
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
-
-            if (!p1 || !p2) {
-                alert("かんばん規格外エラー：正しく読み取れませんでした。");
-                return;
-            }
-
+            
+            if (!p1 || !p2) { alert("規格外エラー"); return; }
+            
             document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
             document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
-
+            
             let isOk = (p1.part === p2.part) && (p1.base === p2.base);
             const now = new Date();
+            
             historyData.unshift({ 
-                date: now.toLocaleDateString(),
+                date: now.toLocaleDateString(), 
                 time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}), 
-                k1: `${p1.base}/${p1.part}`, k2: `${p2.base}/${p2.part}`, isOk: isOk 
+                k1: `${p1.base}/${p1.part}`, 
+                k2: `${p2.base}/${p2.part}`, 
+                isOk: isOk 
             });
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData)); 
             renderHistory();
-
-            if (isOk) {
-                playSound('ok');
-                document.getElementById('ok-overlay').style.display = 'flex';
-                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500);
-            } else {
-                playSound('ng');
-                document.getElementById('lock-screen').style.display = 'flex';
-                document.getElementById('pw-input').focus();
+            
+            if (isOk) { 
+                playSound('ok'); 
+                document.getElementById('ok-overlay').style.display = 'flex'; 
+                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500); 
+            } else { 
+                playSound('ng'); 
+                document.getElementById('lock-screen').style.display = 'flex'; 
+                document.getElementById('pw-input').focus(); 
             }
         }
 
@@ -192,28 +176,51 @@
             const tbody = document.getElementById('history-tbody');
             tbody.innerHTML = historyData.map(item => `
                 <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
-                    <td>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.isOk ? 'OK':'NG'}</td>
+                    <td>${item.time}</td>
+                    <td>${item.k1}</td>
+                    <td>${item.k2}</td>
+                    <td>${item.isOk ? 'OK':'NG'}</td>
                 </tr>
             `).join('');
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
         }
 
-        function checkPassword() {
-            if (document.getElementById('pw-input').value === "8181") {
-                document.getElementById('lock-screen').style.display = 'none';
-                document.getElementById('pw-input').value = "";
-            } else { alert("パスワードが違います"); }
+        function checkPassword() { 
+            if (document.getElementById('pw-input').value === "8181") { 
+                document.getElementById('lock-screen').style.display = 'none'; 
+                document.getElementById('pw-input').value = ""; 
+            } else { 
+                alert("PASS間違い"); 
+            } 
         }
 
-        function clearHistory() { if (confirm("履歴をすべて消去しますか？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
+        function clearHistory() { 
+            if (confirm("消去？")) { 
+                historyData = []; 
+                localStorage.removeItem('kanbanHistory'); 
+                renderHistory(); 
+            } 
+        }
         
+        // ★CSV送信機能（タブ増殖対策＆履歴リセット付き）★
         function autoSendCSV() {
-            if (historyData.length === 0) { alert("送信するデータがありません。"); return; }
+            if (historyData.length === 0) { 
+                alert("送信するデータがありません。"); 
+                return; 
+            }
             let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
-            const shortcutName = encodeURIComponent("かんばんCSV送信");
-            const encodedCsv = encodeURIComponent(csv);
-            window.location.href = `shortcuts://run-shortcut?name=${shortcutName}&input=${encodedCsv}`;
-            setTimeout(() => { if (confirm("送信しました。履歴をリセットしますか？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }, 1500);
+            
+            // location.replace を使ってタブ増殖を防止
+            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
+
+            // ショートカットに飛んだ後、1.5秒後に履歴をリセットするか確認（★復活させました★）
+            setTimeout(() => { 
+                if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
+                    historyData = []; 
+                    localStorage.removeItem('kanbanHistory'); 
+                    renderHistory(); 
+                } 
+            }, 1500);
         }
     </script>
 </body>
