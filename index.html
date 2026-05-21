@@ -2,226 +2,328 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="かんばん照合">
-    <title>かんばん照合システム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>かんばん照合ツール</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --primary-color: #007aff; --success-color: #34c759; --danger-color: #ff3b30; --card-bg: rgba(255, 255, 255, 0.95); }
-        body { font-family: 'SF Pro Text', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 100%; max-width: 500px; height: 100%; padding: 25px 10px 10px 10px; box-sizing: border-box; display: flex; flex-direction: column; }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+        h1 { font-size: 1.2rem; color: #333; margin-top: 5px; }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        .status-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .instruction {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #0056b3;
+            margin-bottom: 5px;
+        }
+        .data-display {
+            font-size: 0.85rem;
+            color: #555;
+            margin: 3px 0;
+            text-align: left;
+            word-break: break-all;
+        }
         
-        .camera-card { padding: 15px 10px; text-align: center; background: var(--card-bg); border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-        .btn-scan { width: 100%; padding: 20px; font-size: 1.3rem; background: var(--primary-color); color: white; border: none; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,122,255,0.3); }
+        .history-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .history-header h2 { margin: 0; font-size: 1rem; color: #333; }
+        .history-actions { display: flex; gap: 8px; }
         
-        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px; }
-        .data-box { background: #f2f2f7; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #e5e5ea; }
-        .data-box .label { font-size: 0.8rem; color: #8e8e93; }
-        .data-box .parsed-value { font-size: 1.1rem; font-weight: bold; color: var(--primary-color); margin-top: 5px; }
-        
-        .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; background: var(--card-bg); border-radius: 12px; padding: 8px; margin-top: 8px;}
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .table-container { flex-grow: 1; overflow-y: auto; border: 1px solid #e5e5ea; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
-        th, td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #e5e5ea; }
-        th { background: #f2f2f7; position: sticky; top: 0; }
-        .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
-        .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
-        
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; }
-        .match-ok { background: linear-gradient(135deg, #34c759 0%, #28a745 100%); }
-        .match-ng { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); }
-        .lock-box { background: white; padding: 20px; border-radius: 20px; color: #1c1c1e; width: 80%; max-width: 300px; text-align: center; }
-        .pw-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin: 10px 0; }
+        .btn-send {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .btn-clear {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 4px;
+            text-align: center;
+            word-break: break-all;
+        }
+        th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 10; }
+        .row-ok { background-color: #e6f9ec; }
+        .row-ng { background-color: #fce8e8; color: #dc3545; font-weight: bold; }
+
+        #result-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .result-text { font-size: 4rem; font-weight: bold; margin-bottom: 20px; }
+        .match-ok { background-color: rgba(40, 167, 69, 0.95); }
+        .match-ng { background-color: rgba(220, 53, 69, 0.95); }
+        .btn-next {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background-color: #fff;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <h1 style="font-size: 1.1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合・出荷管理</h1>
-        
-        <div class="camera-card">
-            <button class="btn-scan" onclick="startShortcutScan()">📷 スキャン開始</button>
-            <div class="status-grid">
-                <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div>
-                <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
+    <h1>かんばん照合ツール</h1>
+
+    <div id="reader"></div>
+
+    <div class="status-box">
+        <div id="instruction" class="instruction">1. 工程内かんばんをスキャン</div>
+        <div class="data-display"><strong>工程内:</strong> <span id="data1">未スキャン</span></div>
+        <div class="data-display"><strong>客先:</strong> <span id="data2">未スキャン</span></div>
+    </div>
+
+    <div class="history-box">
+        <div class="history-header">
+            <h2 id="history-count">照合履歴 (0件)</h2>
+            <div class="history-actions">
+                <button class="btn-send" onclick="sendEmail()">報告してクリア</button>
+                <button class="btn-clear" onclick="clearHistory()">消去</button>
             </div>
         </div>
-
-        <div class="history-card">
-            <div class="history-header">
-                <span id="history-count" style="font-size:0.8rem; font-weight:bold;">履歴 (0)</span>
-                <div>
-                    <button onclick="clearHistory()" style="font-size:0.7rem; padding:4px 8px;">消去</button>
-                    <button onclick="autoSendCSV()" style="font-size:0.7rem; padding:4px 8px; background:var(--success-color); color:white; border:none; border-radius:4px;">CSV送信</button>
-                </div>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead><tr><th>日時</th><th>工程</th><th>客先</th><th>判定</th></tr></thead>
-                    <tbody id="history-tbody"></tbody>
-                </table>
-            </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">日時</th> <th style="width: 30%;">工程内</th>
+                        <th style="width: 30%;">客先</th>
+                        <th style="width: 20%;">結果</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <div id="ok-overlay" class="overlay match-ok"><div style="font-size: 5rem; font-weight: 900;">OK</div></div>
-    <div id="lock-screen" class="overlay match-ng">
-        <div style="font-size: 4rem; font-weight: 900; margin-bottom: 20px;">NG!!</div>
-        <div class="lock-box">
-            <h3 style="color:var(--danger-color); margin:0;">不一致ロック</h3>
-            <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
-            <button onclick="checkPassword()" style="width:100%; padding:12px; background:#1c1c1e; color:white; border:none; border-radius:10px; font-weight:bold;">解除</button>
-        </div>
+    <div id="result-overlay">
+        <div id="result-text" class="result-text">OK</div>
+        <button class="btn-next" onclick="resetScanner()">次のかんばんへ</button>
     </div>
 
     <script>
+        let html5QrCode;
+        let step = 1;
+        let kanban1Data = "";
+        let kanban2Data = "";
+        let canScan = true;
+        
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // ★音を鳴らす機能★
-        function playSound(type) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            
-            if (type === 'ok') {
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        // ■■■ メールの設定（送信先） ■■■
+        const TARGET_EMAIL_ADDRESS = "qcaichikanbankun0805@gmail.com"; 
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!canScan || step === 3) return;
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            if (step === 1) {
+                kanban1Data = decodedText;
+                document.getElementById('data1').innerText = kanban1Data;
+                document.getElementById('instruction').innerText = "2. 客先かんばんをスキャン";
+                document.getElementById('instruction').style.color = "#d39e00";
+                step = 2;
+                pauseScanning(1000);
+            } else if (step === 2) {
+                kanban2Data = decodedText;
+                document.getElementById('data2').innerText = kanban2Data;
+                step = 3;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const overlay = document.getElementById('result-overlay');
+            const resultText = document.getElementById('result-text');
+            overlay.style.display = 'flex';
+            let isOk = kanban1Data === kanban2Data;
+
+            if (isOk) {
+                overlay.className = 'match-ok';
+                resultText.innerText = '一致 OK';
+                if (navigator.vibrate) navigator.vibrate([100, 100, 100]);
             } else {
-                osc.type = 'sawtooth'; 
-                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                overlay.className = 'match-ng';
+                resultText.innerText = '不一致 NG!!';
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
             }
-            osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+            saveHistory(isOk);
+
+            // 1.5秒（1500ミリ秒）後に自動で次のスキャンへ移行
+            setTimeout(() => {
+                if (overlay.style.display === 'flex') {
+                    resetScanner();
+                }
+            }, 1500); 
         }
 
-        // ★初期読み込み時＆データ受け取り時の処理★
-        window.onload = function() {
-            renderHistory();
-            
-            // 画面タッチで音の制限を解除（iPhone対策）
-            document.body.addEventListener('touchstart', () => { 
-                if (audioCtx.state === 'suspended') audioCtx.resume(); 
-            }, { once: true });
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const k1 = urlParams.get('k1'); const k2 = urlParams.get('k2');
-            if (k1 && k2) {
-                // 音の鳴り始めをスムーズにするため少し遅延
-                setTimeout(() => processScanData(k1, k2), 300);
-                // 履歴に不要なURLパラメータを残さないように上書き
-                window.history.replaceState(null, '', window.location.pathname);
-            }
-        };
-
-        // ★スキャン開始（ショートカット呼び出し）★
-        function startShortcutScan() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            // location.replace を使ってタブ増殖を防止
-            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
-        }
-
-        function parseKanban(data) {
-            let cleanText = data.replace(/[\r\n]/g, '').trim();
-            let parts = cleanText.split(/\s+/);
-            if (parts.length >= 5 && parts[0].startsWith("JT")) {
-                let b5 = parts[4]; return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
-            }
-            let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
-            if (match) return { part: match[1], base: match[2] };
-            return null;
-        }
-
-        // ★照合・判定機能★
-        function processScanData(k1Raw, k2Raw) {
-            const p1 = parseKanban(decodeURIComponent(k1Raw));
-            const p2 = parseKanban(decodeURIComponent(k2Raw));
-            
-            if (!p1 || !p2) { alert("規格外エラー"); return; }
-            
-            document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
-            document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
-            
-            let isOk = (p1.part === p2.part) && (p1.base === p2.base);
+        function saveHistory(isOk) {
             const now = new Date();
+            // 年月日時分秒を取得するように変更
+            const year = now.getFullYear();
+            const month = ('0' + (now.getMonth() + 1)).slice(-2);
+            const date = ('0' + now.getDate()).slice(-2);
+            const hms = ('0' + now.getHours()).slice(-2) + ':' + 
+                        ('0' + now.getMinutes()).slice(-2) + ':' + 
+                        ('0' + now.getSeconds()).slice(-2);
             
-            historyData.unshift({ 
-                date: now.toLocaleDateString(), 
-                time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}), 
-                k1: `${p1.base}/${p1.part}`, 
-                k2: `${p2.base}/${p2.part}`, 
-                isOk: isOk 
-            });
-            localStorage.setItem('kanbanHistory', JSON.stringify(historyData)); 
+            const fullTimeStr = `${year}/${month}/${date} ${hms}`;
+
+            const record = {
+                time: fullTimeStr, // 修正：フルタイムスタンプを使用
+                k1: kanban1Data,
+                k2: kanban2Data,
+                result: isOk ? "OK" : "NG",
+                isOk: isOk
+            };
+
+            historyData.unshift(record);
+            localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
-            
-            if (isOk) { 
-                playSound('ok'); 
-                document.getElementById('ok-overlay').style.display = 'flex'; 
-                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500); 
-            } else { 
-                playSound('ng'); 
-                document.getElementById('lock-screen').style.display = 'flex'; 
-                document.getElementById('pw-input').focus(); 
-            }
         }
 
         function renderHistory() {
             const tbody = document.getElementById('history-tbody');
-            tbody.innerHTML = historyData.map(item => `
-                <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
-                    <td>${item.time}</td>
-                    <td>${item.k1}</td>
-                    <td>${item.k2}</td>
-                    <td>${item.isOk ? 'OK':'NG'}</td>
-                </tr>
-            `).join('');
-            document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
+            tbody.innerHTML = '';
+            historyData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = item.isOk ? 'row-ok' : 'row-ng';
+                tr.innerHTML = `<td>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.result}</td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('history-count').innerText = `照合履歴 (${historyData.length}件)`;
         }
 
-        function checkPassword() { 
-            if (document.getElementById('pw-input').value === "8181") { 
-                document.getElementById('lock-screen').style.display = 'none'; 
-                document.getElementById('pw-input').value = ""; 
-            } else { 
-                alert("PASS間違い"); 
-            } 
-        }
-
-        function clearHistory() { 
-            if (confirm("消去？")) { 
-                historyData = []; 
-                localStorage.removeItem('kanbanHistory'); 
-                renderHistory(); 
-            } 
-        }
-        
-        // ★CSV送信機能（タブ増殖対策＆履歴リセット付き）★
-        function autoSendCSV() {
-            if (historyData.length === 0) { 
-                alert("送信するデータがありません。"); 
-                return; 
+        function clearHistory() {
+            if (confirm("履歴をすべて削除しますか？")) {
+                executeClear();
             }
-            let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
-            
-            // location.replace を使ってタブ増殖を防止
-            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
-
-            // ショートカットに飛んだ後、1.5秒後に履歴をリセットするか確認（★復活させました★）
-            setTimeout(() => { 
-                if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
-                    historyData = []; 
-                    localStorage.removeItem('kanbanHistory'); 
-                    renderHistory(); 
-                } 
-            }, 1500);
         }
+
+        function executeClear() {
+            historyData = [];
+            localStorage.removeItem('kanbanHistory');
+            renderHistory();
+        }
+
+        function sendEmail() {
+            if (historyData.length === 0) {
+                alert("送信する履歴データがありません。");
+                return;
+            }
+
+            const subject = "【報告】かんばん照合履歴";
+            let body = "かんばん照合履歴（全件）:\n\n";
+            body += "日時\t工程内\t客先\t結果\n"; // 修正：ヘッダーを日時に
+            body += "----------------------------------------\n";
+            historyData.forEach(item => {
+                body += `${item.time} \t ${item.k1} \t ${item.k2} \t ${item.result}\n`;
+            });
+
+            const mailtoLink = `mailto:${TARGET_EMAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            window.location.href = mailtoLink;
+
+            setTimeout(() => {
+                if (confirm("メールアプリへ送信しました。画面上の履歴をリセットしてよろしいですか？")) {
+                    executeClear();
+                }
+            }, 1000);
+        }
+
+        function resetScanner() {
+            step = 1;
+            kanban1Data = "";
+            kanban2Data = "";
+            document.getElementById('data1').innerText = "未スキャン";
+            document.getElementById('data2').innerText = "未スキャン";
+            document.getElementById('instruction').innerText = "1. 工程内かんばんをスキャン";
+            document.getElementById('instruction').style.color = "#0056b3";
+            document.getElementById('result-overlay').style.display = 'none';
+            pauseScanning(500);
+        }
+
+        function pauseScanning(ms) {
+            canScan = false;
+            setTimeout(() => { canScan = true; }, ms);
+        }
+
+        function startCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err => alert("カメラ起動エラー: " + err));
+        }
+
+        window.onload = () => {
+            renderHistory();
+            startCamera();
+        };
     </script>
 </body>
 </html>
