@@ -90,7 +90,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
         
         // オーディオ設定
@@ -136,28 +136,15 @@
             const k2 = urlParams.get('k2');
             
             if (k1 && k2) {
-                // 音の鳴り始めをスムーズにするため少し遅延して処理
                 setTimeout(() => processScanData(k1, k2), 300);
-                // 履歴に不要なURLパラメータを残さないように上書き
                 window.history.replaceState(null, '', window.location.pathname);
             }
         };
 
-        // ★タブを増やさずに裏側でURL（ショートカット）を叩く関数★
-        function triggerURL(url) {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url;
-            document.body.appendChild(iframe);
-            // 用が済んだら消す
-            setTimeout(() => document.body.removeChild(iframe), 1000);
-        }
-
-        // スキャン開始（ショートカット呼び出し）
+        // ★修正箇所：通常の方法でショートカットを起動するように戻しました★
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            // location.replaceではなくiframe方式でタブ増殖を防ぐ
-            triggerURL(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
+            window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`;
         }
 
         function parseKanban(data) {
@@ -213,7 +200,6 @@
             if (isOk) {
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                // 1.5秒後に自動でOK画面を閉じる
                 setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500);
             } else {
                 playSound('ng');
@@ -262,8 +248,8 @@
             let csv = "日時,工程内,客先,判定\n" + historyData.map(i => `"${i.datetime}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
             const encodedCsv = encodeURIComponent(csv);
             
-            // iframe方式でタブ増殖を防ぎつつショートカットへ渡す
-            triggerURL(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodedCsv}`);
+            // ★修正箇所：こちらも通常の方法に戻しました★
+            window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodedCsv}`;
             
             setTimeout(() => { 
                 if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
