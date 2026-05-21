@@ -206,7 +206,6 @@
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // ★音を鳴らす機能
         function playSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
@@ -231,9 +230,7 @@
             }
         }
 
-        // ★URL（クエリまたはハッシュ）からデータを抽出して処理するメイン監視関数
         function checkUrlData() {
-            // ?k1=...（クエリ）と #k1=...（ハッシュ）の両方に対応
             const searchString = window.location.search.substring(1) || window.location.hash.substring(1);
             if (!searchString) return;
 
@@ -242,37 +239,26 @@
             const k2 = urlParams.get('k2');
 
             if (k1 && k2) {
-                // 【重要】次回のハッシュ変更(#)を正しく検知させるため、URLパラメータを一度綺麗に消去する
                 window.history.replaceState(null, '', window.location.pathname);
-                
-                // 画面切り替えのラグを少し吸収してから判定を実行
                 setTimeout(() => processScanData(k1, k2), 100);
             }
         }
 
-        // ★初期読み込み時のイベント
         window.onload = function() {
             renderHistory();
-            
-            // iPhone対策：最初の画面タッチでオーディオコンテキストのロックを解除
             document.body.addEventListener('touchstart', () => {
                 if (audioCtx.state === 'suspended') audioCtx.resume();
             }, { once: true });
-
             checkUrlData();
         };
 
-        // ★【最重要】同じタブ内でハッシュ（#）が書き換わったイベントをキャッチする
         window.addEventListener('hashchange', checkUrlData);
 
-        // ★スキャン開始（ショートカット呼び出し）
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            // location.replace を使用して履歴スタックの増殖を防ぐ
             window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
         }
 
-        // ★かんばんデータのパースロジック
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let parts = cleanText.split(/\s+/);
@@ -285,7 +271,6 @@
             return null;
         }
 
-        // ★照合・判定機能
         function processScanData(k1Raw, k2Raw) {
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
@@ -301,7 +286,6 @@
             let isOk = (p1.part === p2.part) && (p1.base === p2.base);
             const now = new Date();
             
-            // ★履歴用のフォーマット（月/日 時:分:秒）を作成
             const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
             const timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
@@ -321,17 +305,29 @@
                 document.getElementById('ok-overlay').style.display = 'flex';
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
-                    // ★OK表示が消えたら、自動で次のスキャンをループ起動
                     startShortcutScan();
                 }, 1500);
             } else {
                 playSound('ng');
                 document.getElementById('lock-screen').style.display = 'flex';
                 document.getElementById('pw-input').focus();
+                
+                // ★追加：NG発生時にその場でエラーデータを自動送信するトリガー
+                autoSendNGNotification(p1, p2, dateStr, timeStr);
             }
         }
 
-        // ★履歴のテーブル描画
+        // ★追加：NGデータを自動でショートカットに裏で飛ばす関数
+        function autoSendNGNotification(p1, p2, dateStr, timeStr) {
+            let csv = "日付,時間,工程内,客先,判定\n" 
+                    + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","NG"`;
+            
+            // 音やロック画面の描画を邪魔しないように0.5秒だけ遅延させて送信
+            setTimeout(() => {
+                window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
+            }, 500);
+        }
+
         function renderHistory() {
             const tbody = document.getElementById('history-tbody');
             tbody.innerHTML = historyData.map(item => `
@@ -345,7 +341,6 @@
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
         }
 
-        // ★NGロック解除パスワード認証
         function checkPassword() {
             if (document.getElementById('pw-input').value === "8181") {
                 document.getElementById('lock-screen').style.display = 'none';
@@ -355,7 +350,6 @@
             }
         }
 
-        // ★履歴消去
         function clearHistory() {
             if (confirm("消去？")) {
                 historyData = [];
@@ -364,7 +358,6 @@
             }
         }
 
-        // ★CSV送信機能
         function autoSendCSV() {
             if (historyData.length === 0) {
                 alert("送信するデータがありません。");
