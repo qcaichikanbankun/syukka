@@ -11,15 +11,12 @@
         :root { --primary-color: #007aff; --success-color: #34c759; --danger-color: #ff3b30; --card-bg: rgba(255, 255, 255, 0.95); }
         body { font-family: 'SF Pro Text', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         .app-container { width: 100%; max-width: 500px; height: 100%; padding: 25px 10px 10px 10px; box-sizing: border-box; display: flex; flex-direction: column; }
-        
         .camera-card { padding: 15px 10px; text-align: center; background: var(--card-bg); border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
         .btn-scan { width: 100%; padding: 20px; font-size: 1.3rem; background: var(--primary-color); color: white; border: none; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,122,255,0.3); }
-        
         .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px; }
         .data-box { background: #f2f2f7; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #e5e5ea; }
         .data-box .label { font-size: 0.8rem; color: #8e8e93; }
         .data-box .parsed-value { font-size: 1.1rem; font-weight: bold; color: var(--primary-color); margin-top: 5px; }
-        
         .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; background: var(--card-bg); border-radius: 12px; padding: 8px; margin-top: 8px;}
         .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .table-container { flex-grow: 1; overflow-y: auto; border: 1px solid #e5e5ea; border-radius: 6px; }
@@ -28,7 +25,6 @@
         th { background: #f2f2f7; position: sticky; top: 0; }
         .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
         .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
-        
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .match-ok { background: linear-gradient(135deg, #34c759 0%, #28a745 100%); }
         .match-ng { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); }
@@ -37,83 +33,98 @@
     </style>
 </head>
 <body>
-
     <div class="app-container">
         <h1 style="font-size: 1.1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合・出荷管理</h1>
-        
         <div class="camera-card">
-            <button class="btn-scan" onclick="startShortcutScan()">📷 スキャン開始</button>
+            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 スキャン開始</button>
             <div class="status-grid">
-                <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div>
+                <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div> 
                 <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
             </div>
         </div>
 
         <div class="history-card">
             <div class="history-header">
-                <span id="history-count" style="font-size:0.8rem; font-weight:bold;">履歴 (0)</span>
+                <h2 id="history-count" style="font-size: 1rem; margin: 0;">履歴 (0)</h2>
                 <div>
-                    <button onclick="clearHistory()" style="font-size:0.7rem; padding:4px 8px;">消去</button>
-                    <button onclick="autoSendCSV()" style="font-size:0.7rem; padding:4px 8px; background:var(--success-color); color:white; border:none; border-radius:4px;">CSV送信</button>
+                    <button onclick="autoSendCSV()" style="padding: 5px 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px;">CSV送信</button>
+                    <button onclick="clearHistory()" style="padding: 5px 10px; background: #ff3b30; color: white; border: none; border-radius: 6px;">消去</button>
                 </div>
             </div>
             <div class="table-container">
-                <table>
-                    <thead><tr><th>日時</th><th>工程</th><th>客先</th><th>判定</th></tr></thead>
+                <table id="history-table">
+                    <thead><tr><th>日時</th><th>工程内</th><th>客先</th><th>判定</th></tr></thead>
                     <tbody id="history-tbody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="ok-overlay" class="overlay match-ok"><div style="font-size: 5rem; font-weight: 900;">OK</div></div>
+    <div id="ok-overlay" class="overlay match-ok">
+        <h1 style="font-size: 4rem; margin: 0;">OK</h1>
+        <p style="font-size: 1.5rem;">照合一致</p>
+    </div>
 
     <div id="lock-screen" class="overlay match-ng">
-        <div style="font-size: 4rem; font-weight: 900; margin-bottom: 20px;">NG!!</div>
         <div class="lock-box">
-            <h3 style="color:var(--danger-color); margin:0;">不一致ロック</h3>
-            <input type="number" id="pw-input" class="pw-input" placeholder="PASS" inputmode="numeric">
-            <button onclick="checkPassword()" style="width:100%; padding:12px; background:#1c1c1e; color:white; border:none; border-radius:10px; font-weight:bold;">解除</button>
+            <h1 style="color: var(--danger-color); margin-top: 0;">NG</h1>
+            <p>不一致！管理者のパスワードを入力</p>
+            <input type="password" id="pw-input" class="pw-input" pattern="[0-9]*" inputmode="numeric" placeholder="PASS">
+            <button onclick="checkPassword()" style="width: 100%; padding: 12px; font-size: 1.2rem; background: var(--primary-color); color: white; border: none; border-radius: 10px; margin-top: 10px;">解除</button>
         </div>
     </div>
 
     <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 音を生成する関数
         function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
             if (type === 'ok') {
                 osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
             } else {
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(200, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
             }
         }
 
         window.onload = function() {
             renderHistory();
-            const urlParams = new URLSearchParams(window.location.search);
-            const k1 = urlParams.get('k1'); const k2 = urlParams.get('k2');
+            
+            document.body.addEventListener('touchstart', () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            }, { once: true });
+
+            // URLパラメータ（?）とハッシュ（#）の両方からデータを取得できるようにする
+            const searchString = window.location.search || window.location.hash.substring(1);
+            const urlParams = new URLSearchParams(searchString);
+            const k1 = urlParams.get('k1');
+            const k2 = urlParams.get('k2');
+
             if (k1 && k2) {
-                setTimeout(() => processScanData(k1, k2), 100);
+                setTimeout(() => processScanData(k1, k2), 300);
+                // 履歴に不要なパラメータを残さないようにクリーンアップ
                 window.history.replaceState(null, '', window.location.pathname);
             }
         };
 
         function startShortcutScan() {
-            audioCtx.resume(); // iPhone音出し有効化
-            location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
         }
 
         function parseKanban(data) {
@@ -131,25 +142,41 @@
         function processScanData(k1Raw, k2Raw) {
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
-            if (!p1 || !p2) { alert("規格外エラー"); return; }
+
+            if (!p1 || !p2) {
+                alert("規格外エラー：正しく読み取れませんでした。");
+                return;
+            }
 
             document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
             document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
 
             let isOk = (p1.part === p2.part) && (p1.base === p2.base);
             const now = new Date();
-            historyData.unshift({ 
-                date: now.toLocaleDateString(),
-                time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}), 
-                k1: `${p1.base}/${p1.part}`, k2: `${p2.base}/${p2.part}`, isOk: isOk 
+            
+            // ★日にち、時間、分、秒のフォーマット作成
+            const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+            const timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+            historyData.unshift({
+                 date: dateStr,
+                 time: timeStr,
+                 k1: `${p1.base}/${p1.part}`,
+                 k2: `${p2.base}/${p2.part}`,
+                 isOk: isOk
             });
-            localStorage.setItem('kanbanHistory', JSON.stringify(historyData)); 
+
+            localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
 
             if (isOk) {
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500);
+                setTimeout(() => { 
+                    document.getElementById('ok-overlay').style.display = 'none';
+                    // ★OK表示の直後に自動で次のスキャンを開始
+                    startShortcutScan();
+                }, 1500);
             } else {
                 playSound('ng');
                 document.getElementById('lock-screen').style.display = 'flex';
@@ -161,7 +188,10 @@
             const tbody = document.getElementById('history-tbody');
             tbody.innerHTML = historyData.map(item => `
                 <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
-                    <td>${item.time}</td><td>${item.k1}</td><td>${item.k2}</td><td>${item.isOk ? 'OK':'NG'}</td>
+                    <td>${item.date} ${item.time}</td>
+                    <td>${item.k1}</td>
+                    <td>${item.k2}</td>
+                    <td>${item.isOk ? 'OK':'NG'}</td>
                 </tr>
             `).join('');
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
@@ -171,19 +201,34 @@
             if (document.getElementById('pw-input').value === "8181") {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('pw-input').value = "";
-            } else { alert("PASS間違い"); }
+            } else {
+                alert("PASS間違い");
+            }
         }
 
-        function clearHistory() { if (confirm("消去？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }
-        
-        // ★CSV送信関数復活★
+        function clearHistory() {
+            if (confirm("消去？")) {
+                historyData = [];
+                localStorage.removeItem('kanbanHistory');
+                renderHistory();
+            }
+        }
+
         function autoSendCSV() {
-            if (historyData.length === 0) { alert("データなし"); return; }
+            if (historyData.length === 0) {
+                alert("送信するデータがありません。");
+                return;
+            }
             let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
-            const shortcutName = encodeURIComponent("かんばんCSV送信");
-            const encodedCsv = encodeURIComponent(csv);
-            window.location.href = `shortcuts://run-shortcut?name=${shortcutName}&input=${encodedCsv}`;
-            setTimeout(() => { if (confirm("送信しました。履歴をリセットしますか？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } }, 1500);
+            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
+            
+            setTimeout(() => { 
+                if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
+                    historyData = []; 
+                    localStorage.removeItem('kanbanHistory'); 
+                    renderHistory(); 
+                } 
+            }, 1500);
         }
     </script>
 </body>
