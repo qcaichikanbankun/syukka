@@ -31,12 +31,10 @@
         .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
         .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
         
-        /* オーバーレイ（結果画面） */
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .match-ok { background: rgba(40, 167, 69, 0.95); }
         .match-ng { background: rgba(220, 53, 69, 0.95); }
         
-        /* ロック画面用 */
         .lock-box { background: white; padding: 25px 20px; border-radius: 20px; color: #1c1c1e; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .lock-box h2 { color: var(--danger-color); margin-top: 0; }
         .pw-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin: 15px 0; box-sizing: border-box; }
@@ -90,21 +88,16 @@
         </div>
     </div>
 
-<script>
+    <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        
-        // オーディオ設定
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 画面タッチで音の制限を解除（iPhone対策）
         document.body.addEventListener('touchstart', () => { 
             if (audioCtx.state === 'suspended') audioCtx.resume(); 
         }, { once: true });
 
-        // 音を鳴らす機能
         function playSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
@@ -115,22 +108,17 @@
                 osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
             } else {
-                osc.type = 'sawtooth'; 
-                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.6);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
             }
         }
 
-        // 初期読み込み時＆データ受け取り時の処理
         window.onload = function() {
             renderHistory();
-            
             const urlParams = new URLSearchParams(window.location.search);
             const k1 = urlParams.get('k1');
             const k2 = urlParams.get('k2');
@@ -141,7 +129,6 @@
             }
         };
 
-        // ★修正箇所：通常の方法でショートカットを起動するように戻しました★
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`;
@@ -150,19 +137,14 @@
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let parts = cleanText.split(/\s+/);
-            
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
-                let b5 = parts[4];
-                return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
+                let b5 = parts[4]; return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
             }
-            
             let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
             if (match) return { part: match[1], base: match[2] };
-            
             return null;
         }
 
-        // 照合・判定機能
         function processScanData(k1Raw, k2Raw) {
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
@@ -174,33 +156,23 @@
             
             document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
             document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
-            
             let isOk = (p1.part === p2.part) && (p1.base === p2.base);
             
-            // 日時を yyyy/mm/dd hh:mm:ss 形式で作成
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const dateStr = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const formattedDateTime = `${year}/${month}/${dateStr} ${hours}:${minutes}:${seconds}`;
+            const formattedDateTime = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-            historyData.unshift({ 
-                datetime: formattedDateTime,
-                k1: `${p1.base}/${p1.part}`, 
-                k2: `${p2.base}/${p2.part}`, 
-                isOk: isOk 
-            });
-            
+            historyData.unshift({ datetime: formattedDateTime, k1: `${p1.base}/${p1.part}`, k2: `${p2.base}/${p2.part}`, isOk: isOk });
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
             
             if (isOk) {
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                setTimeout(() => { document.getElementById('ok-overlay').style.display = 'none'; }, 1500);
+                // 【修正】1.5秒後に画面を閉じると同時に、次のスキャンを自動で強制起動！
+                setTimeout(() => { 
+                    document.getElementById('ok-overlay').style.display = 'none'; 
+                    startShortcutScan();
+                }, 1500);
             } else {
                 playSound('ng');
                 document.getElementById('lock-screen').style.display = 'flex';
@@ -225,38 +197,21 @@
             if (document.getElementById('pw-input').value === "8181") {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('pw-input').value = "";
-            } else { 
-                alert("パスワードが違います"); 
-            }
+                // 【修正】NG解除後も、手動で押させず自動で次のスキャンへ！
+                startShortcutScan();
+            } else { alert("パスワードが違います"); }
         }
 
         function clearHistory() { 
-            if (confirm("履歴をすべて消去しますか？")) { 
-                historyData = [];
-                localStorage.removeItem('kanbanHistory'); 
-                renderHistory(); 
-            } 
+            if (confirm("履歴をすべて消去しますか？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } 
         }
 
-        // CSV送信機能
         function autoSendCSV() {
-            if (historyData.length === 0) { 
-                alert("送信するデータがありません。");
-                return; 
-            }
-            
+            if (historyData.length === 0) { alert("送信するデータがありません。"); return; }
             let csv = "日時,工程内,客先,判定\n" + historyData.map(i => `"${i.datetime}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
-            const encodedCsv = encodeURIComponent(csv);
-            
-            // ★修正箇所：こちらも通常の方法に戻しました★
-            window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodedCsv}`;
-            
+            window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`;
             setTimeout(() => { 
-                if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
-                    historyData = []; 
-                    localStorage.removeItem('kanbanHistory'); 
-                    renderHistory(); 
-                } 
+                if (confirm("送信しました。画面上の履歴をリセットしますか？")) { historyData = []; localStorage.removeItem('kanbanHistory'); renderHistory(); } 
             }, 1500);
         }
     </script>
