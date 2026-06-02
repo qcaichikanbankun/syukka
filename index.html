@@ -29,11 +29,43 @@
             width: 100%; 
             max-width: 500px; 
             height: 100%; 
-            padding: 25px 10px 10px 10px; 
+            padding: 15px 10px 10px 10px; 
             box-sizing: border-box; 
             display: flex; 
             flex-direction: column; 
         }
+        
+        /* ★カウンターのデザイン */
+        .counter-card {
+            background: var(--card-bg);
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .counter-text {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #1c1c1e;
+        }
+        .counter-number {
+            color: var(--success-color);
+            font-size: 1.5rem;
+            margin-left: 5px;
+        }
+        .btn-reset {
+            padding: 6px 12px;
+            background: #8e8e93;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
         .camera-card { 
             padding: 15px 10px; 
             text-align: center; 
@@ -162,7 +194,11 @@
 </head>
 <body>
     <div class="app-container">
-        <h1 style="font-size: 1.1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合・出荷管理</h1>
+        <div class="counter-card">
+            <div class="counter-text">OK照合数: <span id="ok-counter" class="counter-number">0</span> 件</div>
+            <button class="btn-reset" onclick="resetCounter()">リセット</button>
+        </div>
+
         <div class="camera-card">
             <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 スキャン開始</button>
             <div class="status-grid">
@@ -181,7 +217,7 @@
             </div>
             <div class="table-container">
                 <table id="history-table">
-                    <thead><tr><th>日時</th><th>工程内</th><th>客先</th><th>判定</th></tr></thead>
+                    <thead><tr><th>日時</th><th>工程内</th><th>客先</th><th>結果/理由</th></tr></thead>
                     <tbody id="history-tbody"></tbody>
                 </table>
             </div>
@@ -195,8 +231,9 @@
 
     <div id="lock-screen" class="overlay match-ng">
         <div class="lock-box">
-            <h1 style="color: var(--danger-color); margin-top: 0;">NG</h1>
-            <p>不一致！管理者のパスワードを入力</p>
+            <h1 style="color: var(--danger-color); margin-top: 0; margin-bottom: 5px;">NG</h1>
+            <p id="ng-reason-text" style="font-weight: bold; font-size: 1.3rem; color: #ff3b30; margin: 0 0 15px 0;">エラー原因</p>
+            <p style="margin: 0; font-size: 0.9rem;">管理者のパスワードを入力</p>
             <input type="password" id="pw-input" class="pw-input" pattern="[0-9]*" inputmode="numeric" placeholder="PASS">
             <button onclick="checkPassword()" style="width: 100%; padding: 12px; font-size: 1.2rem; background: var(--primary-color); color: white; border: none; border-radius: 10px; margin-top: 10px;">解除</button>
         </div>
@@ -204,6 +241,8 @@
 
     <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
+        // ★追加：カウンター用のデータ読み込み
+        let okCount = parseInt(localStorage.getItem('kanbanOkCount')) || 0;
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(type) {
@@ -230,6 +269,20 @@
             }
         }
 
+        // ★追加：カウンター画面の更新
+        function updateCounterDisplay() {
+            document.getElementById('ok-counter').innerText = okCount;
+        }
+
+        // ★追加：カウンターのリセット処理
+        function resetCounter() {
+            if (confirm("カウンターを0にリセットしますか？")) {
+                okCount = 0;
+                localStorage.setItem('kanbanOkCount', okCount);
+                updateCounterDisplay();
+            }
+        }
+
         function checkUrlData() {
             const searchString = window.location.search.substring(1) || window.location.hash.substring(1);
             if (!searchString) return;
@@ -246,6 +299,8 @@
 
         window.onload = function() {
             renderHistory();
+            updateCounterDisplay(); // ★起動時にカウンター表示を反映
+            
             document.body.addEventListener('touchstart', () => {
                 if (audioCtx.state === 'suspended') audioCtx.resume();
             }, { once: true });
@@ -272,16 +327,6 @@
         }
 
         function processScanData(k1Raw, k2Raw) {
-            // ★追加：二重読み取り防止（ポカヨケ）
-            // 全く同じQRコードを2回連続でスキャンした場合はエラーとして弾く
-            if (k1Raw === k2Raw) {
-                playSound('ng');
-                alert("【エラー】同じかんばんを2回連続でスキャンしています。");
-                document.getElementById('lock-screen').style.display = 'flex';
-                document.getElementById('pw-input').focus();
-                return;
-            }
-
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
 
@@ -293,9 +338,24 @@
             document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
             document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
 
-            let isOk = (p1.part === p2.part) && (p1.base === p2.base);
+            let isOk = false;
+            let ngReason = "";
+
+            // ★変更：NGの理由を細分化して判定
+            if (k1Raw === k2Raw) {
+                ngReason = "二重読み取り";
+            } else if (p1.part === p2.part && p1.base === p2.base) {
+                isOk = true;
+                ngReason = "OK";
+            } else if (p1.part !== p2.part && p1.base !== p2.base) {
+                ngReason = "品番・ベース違い";
+            } else if (p1.part !== p2.part) {
+                ngReason = "品番違い";
+            } else if (p1.base !== p2.base) {
+                ngReason = "ベース違い";
+            }
+
             const now = new Date();
-            
             const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
             const timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
@@ -304,31 +364,42 @@
                  time: timeStr,
                  k1: `${p1.base}/${p1.part}`,
                  k2: `${p2.base}/${p2.part}`,
-                 isOk: isOk
+                 isOk: isOk,
+                 reason: ngReason // ★理由を履歴データに追加
             });
 
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
 
             if (isOk) {
+                // ★追加：OKならカウンターを増やして保存
+                okCount++;
+                localStorage.setItem('kanbanOkCount', okCount);
+                updateCounterDisplay();
+
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
-                }, 1500); // 必要に応じて3000（3秒）などに変更してください
+                }, 1500); // 次への切り替え秒数
             } else {
                 playSound('ng');
+                
+                // ★追加：ロック画面に具体的なNG理由を表示
+                document.getElementById('ng-reason-text').innerText = ngReason;
                 document.getElementById('lock-screen').style.display = 'flex';
                 document.getElementById('pw-input').focus();
                 
-                autoSendNGNotification(p1, p2, dateStr, timeStr);
+                // メール通知にも理由を渡す
+                autoSendNGNotification(p1, p2, dateStr, timeStr, ngReason);
             }
         }
 
-        function autoSendNGNotification(p1, p2, dateStr, timeStr) {
-            let csv = "日付,時間,工程内,客先,判定\n" 
-                    + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","NG"`;
+        // ★変更：引数にngReasonを追加してメールのCSVに出力
+        function autoSendNGNotification(p1, p2, dateStr, timeStr, ngReason) {
+            let csv = "日付,時間,工程内,客先,結果\n" 
+                    + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
             setTimeout(() => {
                 window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
@@ -337,12 +408,13 @@
 
         function renderHistory() {
             const tbody = document.getElementById('history-tbody');
+            // ★変更：結果の列に `item.reason`（OK または 品番違い 等）を表示
             tbody.innerHTML = historyData.map(item => `
                 <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
                     <td>${item.date} ${item.time}</td>
                     <td>${item.k1}</td>
                     <td>${item.k2}</td>
-                    <td>${item.isOk ? 'OK':'NG'}</td>
+                    <td>${item.reason}</td>
                 </tr>
             `).join('');
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
@@ -358,7 +430,7 @@
         }
 
         function clearHistory() {
-            if (confirm("消去？")) {
+            if (confirm("履歴データを消去しますか？")) {
                 historyData = [];
                 localStorage.removeItem('kanbanHistory');
                 renderHistory();
@@ -370,7 +442,8 @@
                 alert("送信するデータがありません。");
                 return;
             }
-            let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
+            // ★変更：一括CSV送信の際も「NG」ではなく詳細理由を出力
+            let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
             window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
             
             setTimeout(() => { 
