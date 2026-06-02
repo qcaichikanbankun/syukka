@@ -272,6 +272,16 @@
         }
 
         function processScanData(k1Raw, k2Raw) {
+            // ★追加：二重読み取り防止（ポカヨケ）
+            // 全く同じQRコードを2回連続でスキャンした場合はエラーとして弾く
+            if (k1Raw === k2Raw) {
+                playSound('ng');
+                alert("【エラー】同じかんばんを2回連続でスキャンしています。");
+                document.getElementById('lock-screen').style.display = 'flex';
+                document.getElementById('pw-input').focus();
+                return;
+            }
+
             const p1 = parseKanban(decodeURIComponent(k1Raw));
             const p2 = parseKanban(decodeURIComponent(k2Raw));
 
@@ -306,23 +316,20 @@
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
-                }, 3000);
+                }, 1500); // 必要に応じて3000（3秒）などに変更してください
             } else {
                 playSound('ng');
                 document.getElementById('lock-screen').style.display = 'flex';
                 document.getElementById('pw-input').focus();
                 
-                // ★追加：NG発生時にその場でエラーデータを自動送信するトリガー
                 autoSendNGNotification(p1, p2, dateStr, timeStr);
             }
         }
 
-        // ★追加：NGデータを自動でショートカットに裏で飛ばす関数
         function autoSendNGNotification(p1, p2, dateStr, timeStr) {
             let csv = "日付,時間,工程内,客先,判定\n" 
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","NG"`;
             
-            // 音やロック画面の描画を邪魔しないように0.5秒だけ遅延させて送信
             setTimeout(() => {
                 window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
             }, 500);
