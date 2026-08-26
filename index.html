@@ -243,7 +243,7 @@
                 <h3 style="margin: 0; font-size: 1rem;">出荷予定</h3>
                 <div>
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
-                    <button onclick="document.getElementById('csv-file').click()" class="btn-reset" style="background: var(--primary-color);">出荷予定読込</button>
+                    <button onclick="document.getElementById('csv-file').click()" class="btn-reset" style="background: var(--primary-color);">CSV読込</button>
                     <button onclick="clearSchedule()" class="btn-reset" style="background: #ff3b30; margin-left: 5px;">クリア</button>
                 </div>
             </div>
@@ -446,7 +446,6 @@
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let parts = cleanText.split(/\s+/);
-            // ご提示いただいたトヨタ型データに適合させる処理
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
                 let b5 = parts[4];
                 return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
@@ -457,11 +456,9 @@
         }
 
         function processScanData(k1Raw, k2Raw) {
-            const decodedK1 = decodeURIComponent(k1Raw);
-            const decodedK2 = decodeURIComponent(k2Raw);
-            
-            const p1 = parseKanban(decodedK1);
-            const p2 = parseKanban(decodedK2);
+            const p1 = parseKanban(decodeURIComponent(k1Raw));
+            const p2 = parseKanban(decodeURIComponent(k2Raw));
+            const k2Decoded = decodeURIComponent(k2Raw);
 
             if (!p1 || !p2) {
                 alert("規格外エラー：正しく読み取れませんでした。");
@@ -474,16 +471,14 @@
             let isOk = false;
             let ngReason = "";
 
-            // ★追加：過去の履歴の中に、同じ客先QR生データが存在するかチェック
-            // （isOkがtrueで記録されたものの中に、今回のdecodedK2と完全一致するものがあるか）
-            const isDuplicateCustomer = historyData.some(item => item.isOk && item.rawK2 === decodedK2);
+            // ★追加：過去の履歴に、今回と全く同じ客先かんばんデータ(かつ照合OKだったもの)がないかチェック
+            const isDuplicateCustomer = historyData.some(item => item.k2Raw === k2Decoded && item.isOk);
 
-            if (decodedK1 === decodedK2) {
-                // カメラで同じ物理カードを2回読んだ場合などのエラー
-                ngReason = "二重読取(同ラベル)";
+            if (k1Raw === k2Raw) {
+                ngReason = "二重読み取り(左右同)";
             } else if (isDuplicateCustomer) {
-                // ★追加：すでに履歴にある客先かんばんをもう一度読んだ場合
-                ngReason = "読込済(客先重複)";
+                // ★追加：枝番まで全く同じ客先かんばんを重複して読んだ場合
+                ngReason = "客先かんばん重複(読込済)";
             } else if (p1.part === p2.part && p1.base === p2.base) {
                 if (scheduleData.length > 0) {
                     let target = scheduleData.find(s => s.base === p1.base && s.remaining > 0);
@@ -520,9 +515,9 @@
                  time: timeStr,
                  k1: `${p1.base}/${p1.part}`,
                  k2: `${p2.base}/${p2.part}`,
+                 k2Raw: k2Decoded, // ★追加：客先かんばんの生の文字列を履歴に保存
                  isOk: isOk,
-                 reason: ngReason,
-                 rawK2: decodedK2 // ★追加：裏側で客先かんばんの生データを記憶させておく
+                 reason: ngReason
             });
 
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
