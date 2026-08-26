@@ -243,7 +243,7 @@
                 <h3 style="margin: 0; font-size: 1rem;">出荷予定</h3>
                 <div>
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
-                    <button onclick="document.getElementById('csv-file').click()" class="btn-reset" style="background: var(--primary-color);">出荷予定数読込</button>
+                    <button onclick="document.getElementById('csv-file').click()" class="btn-reset" style="background: var(--primary-color);">CSV読込</button>
                     <button onclick="clearSchedule()" class="btn-reset" style="background: #ff3b30; margin-left: 5px;">クリア</button>
                 </div>
             </div>
@@ -438,9 +438,17 @@
 
         window.addEventListener('hashchange', checkUrlData);
 
+        // ★変更箇所：古いタブを自動で閉じる処理を追加
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            // 1. ショートカットアプリを呼び出す
             window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
+            
+            // 2. ショートカットに飛んだ直後に、この古いタブを自爆させる（タブ増殖防止）
+            setTimeout(() => {
+                window.open('about:blank', '_self').close();
+            }, 800);
         }
 
         function parseKanban(data) {
@@ -471,13 +479,11 @@
             let isOk = false;
             let ngReason = "";
 
-            // ★追加：過去の履歴に、今回と全く同じ客先かんばんデータ(かつ照合OKだったもの)がないかチェック
             const isDuplicateCustomer = historyData.some(item => item.k2Raw === k2Decoded && item.isOk);
 
             if (k1Raw === k2Raw) {
                 ngReason = "二重読み取り(左右同)";
             } else if (isDuplicateCustomer) {
-                // ★追加：枝番まで全く同じ客先かんばんを重複して読んだ場合
                 ngReason = "客先かんばん重複(読込済)";
             } else if (p1.part === p2.part && p1.base === p2.base) {
                 if (scheduleData.length > 0) {
@@ -515,7 +521,7 @@
                  time: timeStr,
                  k1: `${p1.base}/${p1.part}`,
                  k2: `${p2.base}/${p2.part}`,
-                 k2Raw: k2Decoded, // ★追加：客先かんばんの生の文字列を履歴に保存
+                 k2Raw: k2Decoded,
                  isOk: isOk,
                  reason: ngReason
             });
