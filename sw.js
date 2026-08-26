@@ -8,37 +8,260 @@
     <meta name="apple-mobile-web-app-title" content="かんばん照合">
     <title>かんばん照合システム</title>
     <style>
-        :root { --primary-color: #007aff; --success-color: #34c759; --danger-color: #ff3b30; --card-bg: rgba(255, 255, 255, 0.95); }
-        body { font-family: 'SF Pro Text', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 100%; max-width: 500px; height: 100%; padding: 25px 10px 10px 10px; box-sizing: border-box; display: flex; flex-direction: column; }
-        .camera-card { padding: 15px 10px; text-align: center; background: var(--card-bg); border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-        .btn-scan { width: 100%; padding: 20px; font-size: 1.3rem; background: var(--primary-color); color: white; border: none; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,122,255,0.3); }
-        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px; }
-        .data-box { background: #f2f2f7; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #e5e5ea; }
-        .data-box .label { font-size: 0.8rem; color: #8e8e93; }
-        .data-box .parsed-value { font-size: 1.1rem; font-weight: bold; color: var(--primary-color); margin-top: 5px; }
-        .history-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; background: var(--card-bg); border-radius: 12px; padding: 8px; margin-top: 8px;}
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .table-container { flex-grow: 1; overflow-y: auto; border: 1px solid #e5e5ea; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
-        th, td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #e5e5ea; }
-        th { background: #f2f2f7; position: sticky; top: 0; }
-        .row-ok td { background-color: rgba(52, 199, 89, 0.1); }
-        .row-ng td { background-color: rgba(255, 59, 48, 0.1); color: var(--danger-color); font-weight: bold; }
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; }
-        .match-ok { background: linear-gradient(135deg, #34c759 0%, #28a745 100%); }
-        .match-ng { background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); }
-        .lock-box { background: white; padding: 20px; border-radius: 20px; color: #1c1c1e; width: 80%; max-width: 300px; text-align: center; }
-        .pw-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin: 10px 0; }
+        :root {
+            --primary-color: #007aff;
+            --success-color: #34c759;
+            --danger-color: #ff3b30;
+            --card-bg: rgba(255, 255, 255, 0.95);
+        }
+        body {
+            font-family: 'SF Pro Text', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            padding: 15px 10px 10px 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .counter-card {
+            background: var(--card-bg);
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .counter-text {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #1c1c1e;
+        }
+        .counter-number {
+            color: var(--success-color);
+            font-size: 1.5rem;
+            margin-left: 5px;
+        }
+        .btn-reset {
+            padding: 6px 12px;
+            background: #8e8e93;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* 出荷予定カードのデザイン */
+        .schedule-card {
+            background: var(--card-bg);
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .schedule-table-wrapper {
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #e5e5ea;
+            border-radius: 6px;
+        }
+        .schedule-table-wrapper table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .schedule-table-wrapper th, .schedule-table-wrapper td {
+            padding: 4px;
+            text-align: center;
+            border-bottom: 1px solid #e5e5ea;
+        }
+        .schedule-table-wrapper th {
+            background: #f2f2f7;
+            position: sticky;
+            top: 0;
+            font-size: 0.75rem;
+        }
+        .row-complete td {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: #a1a1a6;
+        }
+
+        .camera-card {
+            padding: 15px 10px;
+            text-align: center;
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-scan {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.3rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,122,255,0.3);
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .data-box {
+            background: #f2f2f7;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e5e5ea;
+        }
+        .data-box .label {
+            font-size: 0.8rem;
+            color: #8e8e93;
+        }
+        .data-box .parsed-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-top: 5px;
+        }
+        .history-card {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #e5e5ea;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.65rem;
+        }
+        th, td {
+            padding: 4px 2px;
+            text-align: center;
+            border-bottom: 1px solid #e5e5ea;
+        }
+        th {
+            background: #f2f2f7;
+            position: sticky;
+            top: 0;
+        }
+        .row-ok td {
+            background-color: rgba(52, 199, 89, 0.1);
+        }
+        .row-ng td {
+            background-color: rgba(255, 59, 48, 0.1);
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .match-ok {
+            background: linear-gradient(135deg, #34c759 0%, #28a745 100%);
+        }
+        .match-ng {
+            background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%);
+        }
+        .lock-box {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            color: #1c1c1e;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+        .pw-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <h1 style="font-size: 1.1rem; color: white; text-align: center; margin: 5px 0;">かんばん照合・出荷管理</h1>
+        <div class="counter-card">
+            <div class="counter-text">OK照合数: <span id="ok-counter" class="counter-number">0</span> 件</div>
+            <button class="btn-reset" onclick="resetCounter()">リセット</button>
+        </div>
+
+        <div class="schedule-card">
+            <div class="schedule-header">
+                <h3 style="margin: 0; font-size: 1rem;">出荷予定</h3>
+                <div>
+                    <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
+                    <button onclick="document.getElementById('csv-file').click()" class="btn-reset" style="background: var(--primary-color);">CSV読込</button>
+                    <button onclick="clearSchedule()" class="btn-reset" style="background: #ff3b30; margin-left: 5px;">クリア</button>
+                </div>
+            </div>
+            <div class="schedule-table-wrapper">
+                <table>
+                    <thead><tr><th>背番号</th><th>便</th><th>残数 / 予定</th></tr></thead>
+                    <tbody id="schedule-tbody">
+                        <tr><td colspan="3" style="color: #8e8e93; padding: 10px;">CSVを読み込んでください</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="camera-card">
             <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 スキャン開始</button>
             <div class="status-grid">
-                <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div> 
+                <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div>
                 <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
             </div>
         </div>
@@ -53,7 +276,7 @@
             </div>
             <div class="table-container">
                 <table id="history-table">
-                    <thead><tr><th>日時</th><th>工程内</th><th>客先</th><th>判定</th></tr></thead>
+                    <thead><tr><th>日時</th><th>工程内</th><th>客先</th><th>結果/理由</th></tr></thead>
                     <tbody id="history-tbody"></tbody>
                 </table>
             </div>
@@ -67,8 +290,9 @@
 
     <div id="lock-screen" class="overlay match-ng">
         <div class="lock-box">
-            <h1 style="color: var(--danger-color); margin-top: 0;">NG</h1>
-            <p>不一致！管理者のパスワードを入力</p>
+            <h1 style="color: var(--danger-color); margin-top: 0; margin-bottom: 5px;">NG</h1>
+            <p id="ng-reason-text" style="font-weight: bold; font-size: 1.3rem; color: #ff3b30; margin: 0 0 15px 0;">エラー原因</p>
+            <p style="margin: 0; font-size: 0.9rem;">管理者のパスワードを入力</p>
             <input type="password" id="pw-input" class="pw-input" pattern="[0-9]*" inputmode="numeric" placeholder="PASS">
             <button onclick="checkPassword()" style="width: 100%; padding: 12px; font-size: 1.2rem; background: var(--primary-color); color: white; border: none; border-radius: 10px; margin-top: 10px;">解除</button>
         </div>
@@ -76,6 +300,9 @@
 
     <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
+        let okCount = parseInt(localStorage.getItem('kanbanOkCount')) || 0;
+        let scheduleData = JSON.parse(localStorage.getItem('kanbanSchedule')) || [];
+
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(type) {
@@ -84,7 +311,7 @@
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
+
             if (type === 'ok') {
                 osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
@@ -102,25 +329,115 @@
             }
         }
 
-        window.onload = function() {
-            renderHistory();
-            
-            document.body.addEventListener('touchstart', () => {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-            }, { once: true });
+        function updateCounterDisplay() {
+            document.getElementById('ok-counter').innerText = okCount;
+        }
 
-            // URLパラメータ（?）とハッシュ（#）の両方からデータを取得できるようにする
-            const searchString = window.location.search || window.location.hash.substring(1);
+        function resetCounter() {
+            if (confirm("カウンターを0にリセットしますか？")) {
+                okCount = 0;
+                localStorage.setItem('kanbanOkCount', okCount);
+                updateCounterDisplay();
+            }
+        }
+
+        function handleCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r\n|\n/);
+                let newSchedule = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    const cols = lines[i].split(',');
+                    if (cols.length >= 4) {
+                        if (i === 0 && (cols[1].includes('背番号') || isNaN(parseInt(cols[3])))) continue;
+
+                        let date = cols[0].replace(/"/g, '').trim();
+                        let base = cols[1].replace(/"/g, '').trim();
+                        let bin = cols[2].replace(/"/g, '').trim();
+                        let scheduled = parseInt(cols[3].replace(/"/g, '').trim()) || 0;
+
+                        newSchedule.push({
+                            date: date,
+                            base: base,
+                            bin: bin,
+                            scheduled: scheduled,
+                            remaining: scheduled
+                        });
+                    }
+                }
+
+                if (newSchedule.length > 0) {
+                    scheduleData = newSchedule;
+                    localStorage.setItem('kanbanSchedule', JSON.stringify(scheduleData));
+                    renderSchedule();
+                    alert("予定データを読み込みました。");
+                } else {
+                    alert("有効なデータが見つかりませんでした。フォーマットを確認してください。");
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file, 'Shift_JIS');
+        }
+
+        function renderSchedule() {
+            const tbody = document.getElementById('schedule-tbody');
+            if (scheduleData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="color: #8e8e93; padding: 10px;">CSVを読み込んでください</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = scheduleData.map(item => {
+                const isComplete = item.remaining <= 0;
+                return `
+                    <tr class="${isComplete ? 'row-complete' : ''}">
+                        <td style="${isComplete ? '' : 'font-weight: bold; font-size: 0.9rem;'}">${item.base}</td>
+                        <td>${item.bin}便</td>
+                        <td style="${isComplete ? '' : 'color: var(--primary-color); font-weight: bold; font-size: 0.9rem;'}">${item.remaining} / ${item.scheduled}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function clearSchedule() {
+            if (confirm("読み込んだ予定データをクリアしますか？")) {
+                scheduleData = [];
+                localStorage.removeItem('kanbanSchedule');
+                renderSchedule();
+            }
+        }
+
+        function checkUrlData() {
+            const searchString = window.location.search.substring(1) || window.location.hash.substring(1);
+            if (!searchString) return;
+
             const urlParams = new URLSearchParams(searchString);
             const k1 = urlParams.get('k1');
             const k2 = urlParams.get('k2');
 
             if (k1 && k2) {
-                setTimeout(() => processScanData(k1, k2), 300);
-                // 履歴に不要なパラメータを残さないようにクリーンアップ
                 window.history.replaceState(null, '', window.location.pathname);
+                setTimeout(() => processScanData(k1, k2), 100);
             }
+        }
+
+        window.onload = function() {
+            renderHistory();
+            updateCounterDisplay();
+            renderSchedule();
+
+            document.body.addEventListener('touchstart', () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            }, { once: true });
+            checkUrlData();
         };
+
+        window.addEventListener('hashchange', checkUrlData);
 
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -151,10 +468,39 @@
             document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
             document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
 
-            let isOk = (p1.part === p2.part) && (p1.base === p2.base);
+            let isOk = false;
+            let ngReason = "";
+
+            if (k1Raw === k2Raw) {
+                ngReason = "二重読み取り";
+            } else if (p1.part === p2.part && p1.base === p2.base) {
+                if (scheduleData.length > 0) {
+                    let target = scheduleData.find(s => s.base === p1.base && s.remaining > 0);
+
+                    if (target) {
+                        target.remaining--;
+                        isOk = true;
+                        ngReason = "OK";
+                        localStorage.setItem('kanbanSchedule', JSON.stringify(scheduleData));
+                        renderSchedule();
+                    } else {
+                        isOk = false;
+                        let exists = scheduleData.some(s => s.base === p1.base);
+                        ngReason = exists ? "予定数完了(過剰)" : "予定データなし";
+                    }
+                } else {
+                    isOk = true;
+                    ngReason = "OK";
+                }
+            } else if (p1.part !== p2.part && p1.base !== p2.base) {
+                ngReason = "品番・ベース違い";
+            } else if (p1.part !== p2.part) {
+                ngReason = "品番違い";
+            } else if (p1.base !== p2.base) {
+                ngReason = "ベース違い";
+            }
+
             const now = new Date();
-            
-            // ★日にち、時間、分、秒のフォーマット作成
             const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
             const timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
@@ -163,25 +509,41 @@
                  time: timeStr,
                  k1: `${p1.base}/${p1.part}`,
                  k2: `${p2.base}/${p2.part}`,
-                 isOk: isOk
+                 isOk: isOk,
+                 reason: ngReason
             });
 
             localStorage.setItem('kanbanHistory', JSON.stringify(historyData));
             renderHistory();
 
             if (isOk) {
+                okCount++;
+                localStorage.setItem('kanbanOkCount', okCount);
+                updateCounterDisplay();
+
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                setTimeout(() => { 
+                setTimeout(() => {
                     document.getElementById('ok-overlay').style.display = 'none';
-                    // ★OK表示の直後に自動で次のスキャンを開始
                     startShortcutScan();
                 }, 1500);
             } else {
                 playSound('ng');
+                document.getElementById('ng-reason-text').innerText = ngReason;
                 document.getElementById('lock-screen').style.display = 'flex';
                 document.getElementById('pw-input').focus();
+
+                autoSendNGNotification(p1, p2, dateStr, timeStr, ngReason);
             }
+        }
+
+        function autoSendNGNotification(p1, p2, dateStr, timeStr, ngReason) {
+            let csv = "日付,時間,工程内,客先,結果\n"
+                    + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
+
+            setTimeout(() => {
+                window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
+            }, 500);
         }
 
         function renderHistory() {
@@ -191,7 +553,7 @@
                     <td>${item.date} ${item.time}</td>
                     <td>${item.k1}</td>
                     <td>${item.k2}</td>
-                    <td>${item.isOk ? 'OK':'NG'}</td>
+                    <td>${item.reason}</td>
                 </tr>
             `).join('');
             document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
@@ -207,7 +569,7 @@
         }
 
         function clearHistory() {
-            if (confirm("消去？")) {
+            if (confirm("履歴データを消去しますか？")) {
                 historyData = [];
                 localStorage.removeItem('kanbanHistory');
                 renderHistory();
@@ -219,15 +581,15 @@
                 alert("送信するデータがありません。");
                 return;
             }
-            let csv = "日付,時間,工程内,客先,判定\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.isOk ? 'OK':'NG'}"`).join("\n");
+            let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
             window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
-            
-            setTimeout(() => { 
-                if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
-                    historyData = []; 
-                    localStorage.removeItem('kanbanHistory'); 
-                    renderHistory(); 
-                } 
+
+            setTimeout(() => {
+                if (confirm("送信しました。画面上の履歴をリセットしますか？")) {
+                    historyData = [];
+                    localStorage.removeItem('kanbanHistory');
+                    renderHistory();
+                }
             }, 1500);
         }
     </script>
