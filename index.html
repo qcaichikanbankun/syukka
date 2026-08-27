@@ -443,7 +443,7 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
             // 1. ショートカットアプリを呼び出す
-            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
+            location.href=(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
             
             // 2. ショートカットに飛んだ直後に、この古いタブを自爆させる（タブ増殖防止）
             setTimeout(() => {
