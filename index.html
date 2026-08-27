@@ -555,7 +555,7 @@
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
             setTimeout(() => {
-                window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
+                location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
             }, 500);
         }
 
@@ -595,7 +595,7 @@
                 return;
             }
             let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
-            window.location.replace(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
+            location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
             
             setTimeout(() => { 
                 if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
