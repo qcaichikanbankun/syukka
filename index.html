@@ -438,17 +438,10 @@
 
         window.addEventListener('hashchange', checkUrlData);
 
-        // ★変更箇所：古いタブを自動で閉じる処理を追加
+        // ★修正箇所：問題を起こしていた「タブ自爆コード」を削除しました！
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            
-            // 1. ショートカットアプリを呼び出す
             location.href=(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
-            
-            // 2. ショートカットに飛んだ直後に、この古いタブを自爆させる（タブ増殖防止）
-            setTimeout(() => {
-                window.open('about:blank', '_self').close();
-            }, 800);
         }
 
         function parseKanban(data) {
@@ -536,6 +529,7 @@
 
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
+                // ★修正箇所：待ち時間を0.5秒（500）に短縮してテンポアップしています
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
