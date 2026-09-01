@@ -29,20 +29,19 @@
             width: 100%; 
             max-width: 500px; 
             height: 100%; 
-            /* ★変更：上部の余白を15pxから60pxに増やし、URLバーを回避 */
-            padding: 60px 10px 10px 10px; 
+            /* ★変更：上部の余白を60pxから85pxにさらに拡大し、確実にURLバーを回避 */
+            padding: 85px 10px 10px 10px; 
             box-sizing: border-box; 
             display: flex; 
             flex-direction: column; 
         }
         
-        /* ★変更：ボタンの大きさを統一するための共通設定 */
         .btn-group {
             display: flex;
-            gap: 8px; /* ボタン同士の隙間 */
+            gap: 8px; 
         }
         .btn-action {
-            width: 110px; /* 読込ボタンも送信ボタンも全て同じ幅に統一 */
+            width: 110px; 
             padding: 8px 0;
             color: white;
             border: none;
@@ -108,10 +107,12 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             flex-shrink: 0; 
         }
+        
+        /* ★変更：照合開始ボタンをさらに大きく、分厚く変更 */
         .btn-scan { 
             width: 100%; 
-            padding: 15px; 
-            font-size: 1.3rem; 
+            padding: 24px 15px; /* 高さを出しました */
+            font-size: 1.6rem; /* 文字を大きくしました */
             background: var(--primary-color); 
             color: white; 
             border: none; 
@@ -119,6 +120,7 @@
             font-weight: bold; 
             box-shadow: 0 4px 10px rgba(0,122,255,0.3); 
         }
+        
         .status-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -234,9 +236,9 @@
                 <h3 style="margin: 0; font-size: 1rem;">出荷予定</h3>
                 <div class="btn-group">
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
-                    <!-- ★大きさを統一したボタン -->
                     <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue">出荷予定読込</button>
-                    <button onclick="clearSchedule()" class="btn-action btn-red">クリア</button>
+                    <!-- ★変更：「クリア」を「消去」に変更しました -->
+                    <button onclick="clearSchedule()" class="btn-action btn-red">消去</button>
                 </div>
             </div>
             <div class="schedule-table-wrapper">
@@ -250,7 +252,8 @@
         </div>
 
         <div class="camera-card">
-            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 スキャン開始</button>
+            <!-- ★変更：「スキャン開始」を「照合開始」に変更しました -->
+            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 照合開始</button>
             <div class="status-grid">
                 <div class="data-box"><div class="label">工程内</div><div id="parsed1" class="parsed-value">---</div></div> 
                 <div class="data-box"><div class="label">客先</div><div id="parsed2" class="parsed-value">---</div></div>
@@ -261,7 +264,6 @@
             <div class="history-header">
                 <h2 id="history-count" style="font-size: 1rem; margin: 0;">履歴 (0)</h2>
                 <div class="btn-group">
-                    <!-- ★大きさを統一したボタン -->
                     <button onclick="autoSendCSV()" class="btn-action btn-blue">CSV送信</button>
                     <button onclick="clearHistory()" class="btn-action btn-red">消去</button>
                 </div>
