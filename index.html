@@ -23,7 +23,6 @@
             font-family: '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Helvetica Neue', sans-serif; 
             margin: 0; 
             padding: 0; 
-            /* 鮮やかで美しいグラデーション背景 */
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
             height: 100vh; 
             overflow: hidden; 
@@ -43,18 +42,17 @@
             flex-direction: column; 
         }
         
-        /* ボタン設定（押し込みアニメーションを削除し、軽量化） */
         .btn-group {
             display: flex;
             gap: 8px; 
         }
         .btn-action {
-            width: 110px; 
+            width: 125px; 
             padding: 10px 0;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 800;
             text-align: center;
             outline: none;
@@ -69,10 +67,9 @@
             border-bottom: 4px solid var(--danger-dark); 
         }
 
-        /* ★すりガラス風（グラスモーフィズム）の美しいカードデザイン */
         .schedule-card, .camera-card, .history-card {
-            background: rgba(255, 255, 255, 0.85); /* 半透明の白 */
-            backdrop-filter: blur(12px); /* 背景をぼかす魔法のコード */
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px); 
             -webkit-backdrop-filter: blur(12px);
             border-radius: 16px;
             margin-bottom: 12px;
@@ -143,7 +140,6 @@
             flex-shrink: 0; 
         }
         
-        /* メインの照合ボタン（動きは削り、見た目だけリッチに） */
         .btn-scan { 
             width: 100%; 
             padding: 24px 15px; 
@@ -160,7 +156,6 @@
             outline: none;
         }
         
-        /* デジタルメーター風表示 */
         .status-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -168,26 +163,25 @@
             margin-top: 16px; 
         }
         .data-box { 
-            background: var(--tech-dark); 
+            background: rgba(255, 255, 255, 0.6); 
             padding: 14px 10px; 
             border-radius: 10px; 
             text-align: center; 
-            box-shadow: inset 0 3px 6px rgba(0,0,0,0.4);
-            border: 2px solid #334155;
+            border: 1px solid rgba(0,0,0,0.1);
         }
         .data-box .label { 
             font-size: 0.75rem; 
-            color: #94a3b8; 
+            color: var(--text-sub); 
             font-weight: 700;
             letter-spacing: 1px;
         }
         .data-box .parsed-value { 
-            font-size: 1.25rem; 
+            /* ★変更：背番号のみになったので、文字を特大サイズ(1.6rem)に変更 */
+            font-size: 1.6rem; 
             font-weight: 900; 
-            color: var(--success); 
-            margin-top: 6px; 
+            color: var(--primary-dark); 
+            margin-top: 4px; 
             font-family: monospace;
-            text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
         }
         
         .history-card { 
@@ -223,7 +217,6 @@
             font-weight: 800; 
         }
         
-        /* フルスクリーン通知レイヤー */
         .overlay { 
             display: none; 
             position: fixed; 
@@ -273,7 +266,7 @@
                 <h3>📦 出荷予定</h3>
                 <div class="btn-group">
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
-                    <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue">予定読込</button>
+                    <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue">出荷予定数読込</button>
                     <button onclick="clearSchedule()" class="btn-action btn-red">消去</button>
                 </div>
             </div>
@@ -290,8 +283,8 @@
         <div class="camera-card">
             <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 照合開始</button>
             <div class="status-grid">
-                <div class="data-box"><div class="label">工程内かんばん</div><div id="parsed1" class="parsed-value">----/----</div></div> 
-                <div class="data-box"><div class="label">客先かんばん</div><div id="parsed2" class="parsed-value">----/----</div></div>
+                <div class="data-box"><div class="label">工程内かんばん</div><div id="parsed1" class="parsed-value">---</div></div> 
+                <div class="data-box"><div class="label">客先かんばん</div><div id="parsed2" class="parsed-value">---</div></div>
             </div>
         </div>
 
@@ -323,7 +316,6 @@
             <p id="ng-reason-text" style="font-weight: 900; font-size: 1.3rem; color: var(--danger-dark); margin: 0 0 20px 0;">エラー原因</p>
             <p style="margin: 0; font-size: 0.9rem; color: var(--text-sub); font-weight: bold;">管理者のパスワードを入力</p>
             <input type="password" id="pw-input" class="pw-input" pattern="[0-9]*" inputmode="numeric" placeholder="PASS">
-            <!-- ロック解除ボタンのアニメーション処理も削除しました -->
             <button onclick="checkPassword()" style="width: 100%; padding: 16px; font-size: 1.2rem; font-weight: 900; background: var(--primary); color: white; border: none; border-bottom: 5px solid var(--primary-dark); border-radius: 12px; margin-top: 5px; outline: none;">ロック解除</button>
         </div>
     </div>
@@ -422,7 +414,7 @@
         }
 
         function clearSchedule() {
-            if (confirm("読み込んだ予定データを消去しますか？")) {
+            if (confirm("読み込んだ予定データをクリアしますか？")) {
                 scheduleData = [];
                 localStorage.removeItem('kanbanSchedule');
                 renderSchedule();
@@ -482,8 +474,9 @@
                 return;
             }
 
-            document.getElementById('parsed1').innerText = `${p1.base}/${p1.part}`;
-            document.getElementById('parsed2').innerText = `${p2.base}/${p2.part}`;
+            // ★変更：画面の表示を背番号（base）のみに変更しました
+            document.getElementById('parsed1').innerText = p1.base;
+            document.getElementById('parsed2').innerText = p2.base;
 
             let isOk = false;
             let ngReason = "";
@@ -531,6 +524,7 @@
             const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
             const timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
+            // ※内部データとしては今まで通り「背番号/品番」の両方を保存（CSV出力用）
             historyData.unshift({
                  date: dateStr,
                  time: timeStr,
@@ -572,11 +566,12 @@
 
         function renderHistory() {
             const tbody = document.getElementById('history-tbody');
+            // ★変更：画面の履歴表示では「背番号（/の左側）」だけを切り取って表示するようにしました
             tbody.innerHTML = historyData.map(item => `
                 <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
                     <td>${item.date} ${item.time}</td>
-                    <td>${item.k1}</td>
-                    <td>${item.k2}</td>
+                    <td>${item.k1.split('/')[0]}</td>
+                    <td>${item.k2.split('/')[0]}</td>
                     <td>${item.reason}</td>
                 </tr>
             `).join('');
@@ -605,6 +600,7 @@
                 alert("送信するデータがありません。");
                 return;
             }
+            // ★変更なし：裏では「背番号/品番」を持っているので、出力時は両方書き出されます
             let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
             location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
             
