@@ -14,22 +14,17 @@
             --success: #10b981; 
             --danger: #ef4444;
             --danger-dark: #b91c1c;
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
             --text-main: #1f2937;
             --text-sub: #6b7280;
             --tech-dark: #1e293b;
-            --tech-light: #38bdf8;
         }
         
         body { 
             font-family: '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Helvetica Neue', sans-serif; 
             margin: 0; 
             padding: 0; 
-            /* オシャレなドット方眼の背景（プロ用ツール感） */
-            background-color: var(--bg-color);
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-            background-size: 20px 20px;
+            /* 鮮やかで美しいグラデーション背景 */
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
             height: 100vh; 
             overflow: hidden; 
             display: flex; 
@@ -48,7 +43,7 @@
             flex-direction: column; 
         }
         
-        /* 物理ボタンのようなタクタイル（3D）ボタン */
+        /* ボタン設定（押し込みアニメーションを削除し、軽量化） */
         .btn-group {
             display: flex;
             gap: 8px; 
@@ -63,12 +58,7 @@
             font-weight: 800;
             text-align: center;
             outline: none;
-        }
-        /* 重いアニメーションは使わず、位置をズラすだけで押し心地を表現 */
-        .btn-action:active {
-            transform: translateY(4px);
-            border-bottom-width: 0px !important;
-            margin-bottom: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .btn-blue { 
             background: var(--primary); 
@@ -79,13 +69,15 @@
             border-bottom: 4px solid var(--danger-dark); 
         }
 
-        /* 洗練されたカードデザイン */
+        /* ★すりガラス風（グラスモーフィズム）の美しいカードデザイン */
         .schedule-card, .camera-card, .history-card {
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.85); /* 半透明の白 */
+            backdrop-filter: blur(12px); /* 背景をぼかす魔法のコード */
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 16px;
             margin-bottom: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.6);
         }
 
         .schedule-card {
@@ -115,11 +107,10 @@
             flex-grow: 1; 
             overflow-y: auto;
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            background: #fff;
+            border: 1px solid rgba(0,0,0,0.05);
+            background: rgba(255,255,255,0.7);
         }
         
-        /* 引き締まったクールなテーブル（表） */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -128,10 +119,10 @@
         th, td {
             padding: 10px 4px;
             text-align: center;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         th {
-            background: var(--tech-dark);
+            background: rgba(30, 41, 59, 0.95);
             color: #ffffff;
             position: sticky;
             top: 0;
@@ -140,10 +131,10 @@
             letter-spacing: 1px;
             z-index: 10;
         }
-        tbody tr:nth-child(even) { background-color: #f9fafb; }
         .row-complete td {
-            color: #d1d5db;
+            color: #9ca3af;
             text-decoration: line-through;
+            background: rgba(0,0,0,0.02);
         }
 
         .camera-card { 
@@ -152,7 +143,7 @@
             flex-shrink: 0; 
         }
         
-        /* 巨大で超目立つ「照合開始」ボタン */
+        /* メインの照合ボタン（動きは削り、見た目だけリッチに） */
         .btn-scan { 
             width: 100%; 
             padding: 24px 15px; 
@@ -165,15 +156,11 @@
             font-weight: 900; 
             letter-spacing: 2px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
             outline: none;
         }
-        .btn-scan:active {
-            transform: translateY(6px);
-            border-bottom-width: 0px;
-            margin-bottom: 6px;
-        }
         
-        /* ダークモード風のデジタルメーター（カッコよさの要） */
+        /* デジタルメーター風表示 */
         .status-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -197,7 +184,7 @@
         .data-box .parsed-value { 
             font-size: 1.25rem; 
             font-weight: 900; 
-            color: var(--success); /* ネオングリーン */
+            color: var(--success); 
             margin-top: 6px; 
             font-family: monospace;
             text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
@@ -226,12 +213,12 @@
             flex-grow: 1; 
             overflow-y: auto; 
             border-radius: 8px;
-            border: 1px solid #e5e7eb; 
-            background: #fff;
+            border: 1px solid rgba(0,0,0,0.05); 
+            background: rgba(255,255,255,0.7);
         }
-        .row-ok td { background-color: #ecfdf5; }
+        .row-ok td { background-color: rgba(16, 185, 129, 0.1); }
         .row-ng td { 
-            background-color: #fef2f2; 
+            background-color: rgba(239, 68, 68, 0.1); 
             color: var(--danger-dark); 
             font-weight: 800; 
         }
@@ -250,8 +237,8 @@
             align-items: center; 
             color: white; 
         }
-        .match-ok { background: rgba(16, 185, 129, 0.95); backdrop-filter: blur(5px); }
-        .match-ng { background: rgba(239, 68, 68, 0.95); backdrop-filter: blur(5px); }
+        .match-ok { background: rgba(16, 185, 129, 0.95); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .match-ng { background: rgba(239, 68, 68, 0.95); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
         
         .lock-box { 
             background: #ffffff;
@@ -283,7 +270,7 @@
 
         <div class="schedule-card">
             <div class="schedule-header">
-                <h3>📋 出荷予定</h3>
+                <h3>📦 出荷予定</h3>
                 <div class="btn-group">
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
                     <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue">予定読込</button>
@@ -303,7 +290,6 @@
         <div class="camera-card">
             <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 照合開始</button>
             <div class="status-grid">
-                <!-- デジタルメーター風デザイン -->
                 <div class="data-box"><div class="label">工程内かんばん</div><div id="parsed1" class="parsed-value">----/----</div></div> 
                 <div class="data-box"><div class="label">客先かんばん</div><div id="parsed2" class="parsed-value">----/----</div></div>
             </div>
@@ -337,7 +323,8 @@
             <p id="ng-reason-text" style="font-weight: 900; font-size: 1.3rem; color: var(--danger-dark); margin: 0 0 20px 0;">エラー原因</p>
             <p style="margin: 0; font-size: 0.9rem; color: var(--text-sub); font-weight: bold;">管理者のパスワードを入力</p>
             <input type="password" id="pw-input" class="pw-input" pattern="[0-9]*" inputmode="numeric" placeholder="PASS">
-            <button onclick="checkPassword()" style="width: 100%; padding: 16px; font-size: 1.2rem; font-weight: 900; background: var(--primary); color: white; border: none; border-bottom: 5px solid var(--primary-dark); border-radius: 12px; margin-top: 5px;" onmousedown="this.style.borderBottomWidth='0px'; this.style.transform='translateY(5px)';" onmouseup="this.style.borderBottomWidth='5px'; this.style.transform='translateY(0)';">ロック解除</button>
+            <!-- ロック解除ボタンのアニメーション処理も削除しました -->
+            <button onclick="checkPassword()" style="width: 100%; padding: 16px; font-size: 1.2rem; font-weight: 900; background: var(--primary); color: white; border: none; border-bottom: 5px solid var(--primary-dark); border-radius: 12px; margin-top: 5px; outline: none;">ロック解除</button>
         </div>
     </div>
 
@@ -435,7 +422,7 @@
         }
 
         function clearSchedule() {
-            if (confirm("読み込んだ予定データをクリアしますか？")) {
+            if (confirm("読み込んだ予定データを消去しますか？")) {
                 scheduleData = [];
                 localStorage.removeItem('kanbanSchedule');
                 renderSchedule();
