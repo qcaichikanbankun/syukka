@@ -35,26 +35,6 @@
             flex-direction: column; 
         }
         
-        .counter-card {
-            background: var(--card-bg);
-            padding: 10px 15px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .counter-text {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #1c1c1e;
-        }
-        .counter-number {
-            color: var(--success-color);
-            font-size: 1.5rem;
-            margin-left: 5px;
-        }
         .btn-reset {
             padding: 6px 12px;
             background: #8e8e93;
@@ -65,21 +45,27 @@
             font-weight: bold;
         }
 
+        /* ★変更：予定表を画面いっぱいに広げる設定 */
         .schedule-card {
             background: var(--card-bg);
             padding: 10px 15px;
             border-radius: 12px;
             margin-bottom: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* 余った空間をすべて埋める */
+            min-height: 0; 
         }
         .schedule-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            flex-shrink: 0;
         }
         .schedule-table-wrapper {
-            max-height: 120px;
+            flex-grow: 1; /* テーブル自体を縦に伸ばす */
             overflow-y: auto;
             border: 1px solid #e5e5ea;
             border-radius: 6px;
@@ -112,6 +98,7 @@
             border-radius: 12px; 
             margin-bottom: 8px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            flex-shrink: 0; /* カメラカードが潰れないようにする */
         }
         .btn-scan { 
             width: 100%; 
@@ -147,15 +134,16 @@
             color: var(--primary-color); 
             margin-top: 5px; 
         }
+
+        /* ★変更：履歴エリアを狭くする設定 */
         .history-card { 
-            flex-grow: 1; 
             display: flex; 
             flex-direction: column; 
-            min-height: 0; 
+            height: 150px; /* 高さを150pxに固定して狭くしました */
+            flex-shrink: 0; 
             background: var(--card-bg); 
             border-radius: 12px; 
             padding: 8px; 
-            margin-top: 8px;
         }
         .history-header { 
             display: flex; 
@@ -233,11 +221,6 @@
 </head>
 <body>
     <div class="app-container">
-        <div class="counter-card">
-            <div class="counter-text">OK照合数: <span id="ok-counter" class="counter-number">0</span> 件</div>
-            <button class="btn-reset" onclick="resetCounter()">リセット</button>
-        </div>
-
         <div class="schedule-card">
             <div class="schedule-header">
                 <h3 style="margin: 0; font-size: 1rem;">出荷予定</h3>
@@ -299,7 +282,6 @@
 
     <script>
         let historyData = JSON.parse(localStorage.getItem('kanbanHistory')) || [];
-        let okCount = parseInt(localStorage.getItem('kanbanOkCount')) || 0;
         let scheduleData = JSON.parse(localStorage.getItem('kanbanSchedule')) || [];
         
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -325,18 +307,6 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.6);
-            }
-        }
-
-        function updateCounterDisplay() {
-            document.getElementById('ok-counter').innerText = okCount;
-        }
-
-        function resetCounter() {
-            if (confirm("カウンターを0にリセットしますか？")) {
-                okCount = 0;
-                localStorage.setItem('kanbanOkCount', okCount);
-                updateCounterDisplay();
             }
         }
 
@@ -427,7 +397,6 @@
 
         window.onload = function() {
             renderHistory();
-            updateCounterDisplay();
             renderSchedule();
             
             document.body.addEventListener('touchstart', () => {
@@ -440,23 +409,18 @@
 
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            location.href = (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
+            location.href=(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
         }
 
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let parts = cleanText.split(/\s+/);
-            
-            // 「JT」から始まる場合は「客先かんばん(customer)」
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
                 let b5 = parts[4];
                 return { part: b5.substring(3, 15), base: b5.substring(0, 3), type: 'customer' };
             }
-            
-            // それ以外（末尾に品番・背番号がある）は「工程内かんばん(internal)」
             let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
             if (match) return { part: match[1], base: match[2], type: 'internal' };
-            
             return null;
         }
 
@@ -478,7 +442,6 @@
 
             const isDuplicateCustomer = historyData.some(item => item.k2Raw === k2Decoded && item.isOk);
 
-            // ★追加：かんばんの種類（組み合わせ）によるNG判定
             if (p1.type === 'customer' && p2.type === 'customer') {
                 ngReason = "エラー：客先かんばん同士";
             } else if (p1.type === 'internal' && p2.type === 'internal') {
@@ -534,13 +497,8 @@
             renderHistory();
 
             if (isOk) {
-                okCount++;
-                localStorage.setItem('kanbanOkCount', okCount);
-                updateCounterDisplay();
-
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                // 待ち時間は0.5秒の爆速設定のままです
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
@@ -560,7 +518,7 @@
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
             setTimeout(() => {
-                location.href = (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
+                location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
             }, 500);
         }
 
@@ -600,7 +558,7 @@
                 return;
             }
             let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
-            location.href = (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
+            location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
             
             setTimeout(() => { 
                 if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
