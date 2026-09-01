@@ -438,21 +438,25 @@
 
         window.addEventListener('hashchange', checkUrlData);
 
-        // ★修正箇所：問題を起こしていた「タブ自爆コード」を削除しました！
         function startShortcutScan() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            location.href=(`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
+            location.href = (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんスキャン")}`);
         }
 
         function parseKanban(data) {
             let cleanText = data.replace(/[\r\n]/g, '').trim();
             let parts = cleanText.split(/\s+/);
+            
+            // 「JT」から始まる場合は「客先かんばん(customer)」
             if (parts.length >= 5 && parts[0].startsWith("JT")) {
                 let b5 = parts[4];
-                return { part: b5.substring(3, 15), base: b5.substring(0, 3) };
+                return { part: b5.substring(3, 15), base: b5.substring(0, 3), type: 'customer' };
             }
+            
+            // それ以外（末尾に品番・背番号がある）は「工程内かんばん(internal)」
             let match = cleanText.match(/([A-Z0-9]{12})\s+(\d{3})-?$/);
-            if (match) return { part: match[1], base: match[2] };
+            if (match) return { part: match[1], base: match[2], type: 'internal' };
+            
             return null;
         }
 
@@ -474,8 +478,15 @@
 
             const isDuplicateCustomer = historyData.some(item => item.k2Raw === k2Decoded && item.isOk);
 
-            if (k1Raw === k2Raw) {
-                ngReason = "二重読み取り(左右同)";
+            // ★追加：かんばんの種類（組み合わせ）によるNG判定
+            if (p1.type === 'customer' && p2.type === 'customer') {
+                ngReason = "エラー：客先かんばん同士";
+            } else if (p1.type === 'internal' && p2.type === 'internal') {
+                ngReason = "エラー：工程内かんばん同士";
+            } else if (p1.type === 'customer' && p2.type === 'internal') {
+                ngReason = "読込順逆(客先→工程内)";
+            } else if (k1Raw === k2Raw) {
+                ngReason = "二重読み取り(全く同じ)";
             } else if (isDuplicateCustomer) {
                 ngReason = "客先かんばん重複(読込済)";
             } else if (p1.part === p2.part && p1.base === p2.base) {
@@ -529,11 +540,11 @@
 
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                // ★修正箇所：待ち時間を0.5秒（500）に短縮してテンポアップしています
+                // 待ち時間は0.5秒の爆速設定のままです
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
-                }, 1500);
+                }, 500);
             } else {
                 playSound('ng');
                 document.getElementById('ng-reason-text').innerText = ngReason;
@@ -549,7 +560,7 @@
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
             setTimeout(() => {
-                location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
+                location.href = (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
             }, 500);
         }
 
@@ -589,7 +600,7 @@
                 return;
             }
             let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
-            location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
+            location.href = (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
             
             setTimeout(() => { 
                 if (confirm("送信しました。画面上の履歴をリセットしますか？")) { 
