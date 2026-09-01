@@ -29,23 +29,31 @@
             width: 100%; 
             max-width: 500px; 
             height: 100%; 
-            padding: 15px 10px 10px 10px; 
+            /* ★変更：上部の余白を15pxから60pxに増やし、URLバーを回避 */
+            padding: 60px 10px 10px 10px; 
             box-sizing: border-box; 
             display: flex; 
             flex-direction: column; 
         }
         
-        .btn-reset {
-            padding: 6px 12px;
-            background: #8e8e93;
+        /* ★変更：ボタンの大きさを統一するための共通設定 */
+        .btn-group {
+            display: flex;
+            gap: 8px; /* ボタン同士の隙間 */
+        }
+        .btn-action {
+            width: 110px; /* 読込ボタンも送信ボタンも全て同じ幅に統一 */
+            padding: 8px 0;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: bold;
+            text-align: center;
         }
+        .btn-blue { background: var(--primary-color); }
+        .btn-red { background: #ff3b30; }
 
-        /* ★変更：予定表を画面いっぱいに広げる設定 */
         .schedule-card {
             background: var(--card-bg);
             padding: 10px 15px;
@@ -54,7 +62,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            flex-grow: 1; /* 余った空間をすべて埋める */
+            flex-grow: 1; 
             min-height: 0; 
         }
         .schedule-header {
@@ -65,7 +73,7 @@
             flex-shrink: 0;
         }
         .schedule-table-wrapper {
-            flex-grow: 1; /* テーブル自体を縦に伸ばす */
+            flex-grow: 1; 
             overflow-y: auto;
             border: 1px solid #e5e5ea;
             border-radius: 6px;
@@ -98,7 +106,7 @@
             border-radius: 12px; 
             margin-bottom: 8px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            flex-shrink: 0; /* カメラカードが潰れないようにする */
+            flex-shrink: 0; 
         }
         .btn-scan { 
             width: 100%; 
@@ -134,12 +142,11 @@
             color: var(--primary-color); 
             margin-top: 5px; 
         }
-
-        /* ★変更：履歴エリアを狭くする設定 */
+        
         .history-card { 
             display: flex; 
             flex-direction: column; 
-            height: 150px; /* 高さを150pxに固定して狭くしました */
+            height: 150px; 
             flex-shrink: 0; 
             background: var(--card-bg); 
             border-radius: 12px; 
@@ -221,13 +228,15 @@
 </head>
 <body>
     <div class="app-container">
+
         <div class="schedule-card">
             <div class="schedule-header">
                 <h3 style="margin: 0; font-size: 1rem;">出荷予定</h3>
-                <div>
+                <div class="btn-group">
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
-                    <button onclick="document.getElementById('csv-file').click()" class="btn-reset" style="background: var(--primary-color);">出荷予定数読込</button>
-                    <button onclick="clearSchedule()" class="btn-reset" style="background: #ff3b30; margin-left: 5px;">クリア</button>
+                    <!-- ★大きさを統一したボタン -->
+                    <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue">出荷予定読込</button>
+                    <button onclick="clearSchedule()" class="btn-action btn-red">クリア</button>
                 </div>
             </div>
             <div class="schedule-table-wrapper">
@@ -251,9 +260,10 @@
         <div class="history-card">
             <div class="history-header">
                 <h2 id="history-count" style="font-size: 1rem; margin: 0;">履歴 (0)</h2>
-                <div>
-                    <button onclick="autoSendCSV()" style="padding: 5px 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px;">CSV送信</button>
-                    <button onclick="clearHistory()" style="padding: 5px 10px; background: #ff3b30; color: white; border: none; border-radius: 6px;">消去</button>
+                <div class="btn-group">
+                    <!-- ★大きさを統一したボタン -->
+                    <button onclick="autoSendCSV()" class="btn-action btn-blue">CSV送信</button>
+                    <button onclick="clearHistory()" class="btn-action btn-red">消去</button>
                 </div>
             </div>
             <div class="table-container">
