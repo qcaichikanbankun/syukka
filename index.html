@@ -176,7 +176,6 @@
             letter-spacing: 1px;
         }
         .data-box .parsed-value { 
-            /* ★変更：背番号のみになったので、文字を特大サイズ(1.6rem)に変更 */
             font-size: 1.6rem; 
             font-weight: 900; 
             color: var(--primary-dark); 
@@ -414,7 +413,7 @@
         }
 
         function clearSchedule() {
-            if (confirm("読み込んだ予定データをクリアしますか？")) {
+            if (confirm("読み込んだ予定データを消去しますか？")) {
                 scheduleData = [];
                 localStorage.removeItem('kanbanSchedule');
                 renderSchedule();
@@ -474,7 +473,6 @@
                 return;
             }
 
-            // ★変更：画面の表示を背番号（base）のみに変更しました
             document.getElementById('parsed1').innerText = p1.base;
             document.getElementById('parsed2').innerText = p2.base;
 
@@ -524,7 +522,6 @@
             const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
             const timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
-            // ※内部データとしては今まで通り「背番号/品番」の両方を保存（CSV出力用）
             historyData.unshift({
                  date: dateStr,
                  time: timeStr,
@@ -541,10 +538,12 @@
             if (isOk) {
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
+                
+                // ★ 1.5秒（1500ミリ秒）表示させてから切り替わるように延長！
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
-                }, 500);
+                }, 1000); 
             } else {
                 playSound('ng');
                 document.getElementById('ng-reason-text').innerText = ngReason;
@@ -559,14 +558,14 @@
             let csv = "日付,時間,工程内,客先,結果\n" 
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
+            // ★ NGが出た時も、1.5秒（1500ミリ秒）画面を見せてからメール送信に飛ぶように延長！
             setTimeout(() => {
                 location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
-            }, 500);
+            }, 1500);
         }
 
         function renderHistory() {
             const tbody = document.getElementById('history-tbody');
-            // ★変更：画面の履歴表示では「背番号（/の左側）」だけを切り取って表示するようにしました
             tbody.innerHTML = historyData.map(item => `
                 <tr class="${item.isOk ? 'row-ok' : 'row-ng'}">
                     <td>${item.date} ${item.time}</td>
@@ -600,7 +599,6 @@
                 alert("送信するデータがありません。");
                 return;
             }
-            // ★変更なし：裏では「背番号/品番」を持っているので、出力時は両方書き出されます
             let csv = "日付,時間,工程内,客先,結果\n" + historyData.map(i => `"${i.date}","${i.time}","${i.k1}","${i.k2}","${i.reason}"`).join("\n");
             location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんCSV送信")}&input=${encodeURIComponent(csv)}`);
             
