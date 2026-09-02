@@ -393,7 +393,7 @@
         }
 
         function clearSchedule() {
-            if (confirm("読み込んだ予定データをクリアしますか？")) {
+            if (confirm("読み込んだ予定データを消去しますか？")) {
                 scheduleData = [];
                 localStorage.removeItem('kanbanSchedule');
                 renderSchedule();
