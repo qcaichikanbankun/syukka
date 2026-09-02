@@ -24,52 +24,30 @@
             margin: 0; 
             padding: 0; 
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            /* 高さを画面ぴったりに固定 */
             height: 100vh; 
+            height: 100dvh;
             overflow: hidden; 
             display: flex; 
-            flex-direction: column; 
-            align-items: center; 
+            justify-content: center;
             color: var(--text-main);
         }
 
+        /* ★iPad用ダッシュボードレイアウト（CSS Gridを採用） */
         .app-container { 
             width: 100%; 
-            /* ★変更：iPadの画面に合わせて横幅を広げました（500px → 800px） */
-            max-width: 800px; 
+            max-width: 1200px; /* iPad向けに横幅を大幅拡張 */
             height: 100%; 
-            padding: 70px 16px 16px 16px; 
+            padding: 80px 20px 20px 20px; 
             box-sizing: border-box; 
-            display: flex; 
-            flex-direction: column; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* 左右2カラムに分割 */
+            grid-template-rows: auto 1fr;   /* 上段はコンテンツの高さ、下段は余り全部 */
+            gap: 20px; /* カード間の隙間 */
         }
         
-        .btn-group {
-            display: flex;
-            gap: 12px; 
-        }
-        .btn-action {
-            /* ★変更：iPad用にボタンも少し幅広に */
-            width: 140px; 
-            padding: 12px 0;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 800;
-            text-align: center;
-            outline: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .btn-blue { 
-            background: var(--primary); 
-            border-bottom: 4px solid var(--primary-dark); 
-        }
-        .btn-red { 
-            background: var(--danger); 
-            border-bottom: 4px solid var(--danger-dark); 
-        }
-
-        .schedule-card, .camera-card, .history-card {
+        /* 共通カードデザイン */
+        .glass-card {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px); 
             -webkit-backdrop-filter: blur(12px);
@@ -78,42 +56,106 @@
             border: 1px solid rgba(255,255,255,0.6);
         }
 
+        /* --- 上段：カメラ＆結果表示エリア --- */
+        .camera-card { 
+            grid-column: 1 / -1; /* 左右ぶち抜きで全幅を使用 */
+            display: flex; 
+            flex-direction: row; /* 横並びにする */
+            align-items: stretch;
+            padding: 20px; 
+            gap: 20px;
+        }
+        
+        .btn-scan { 
+            flex: 1; /* 左半分をボタンに */
+            font-size: 2rem; 
+            background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+            color: white; 
+            border: none; 
+            border-bottom: 8px solid #1e3a8a; 
+            border-radius: 16px; 
+            font-weight: 900; 
+            letter-spacing: 4px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+            outline: none;
+        }
+
+        .status-grid { 
+            flex: 1.2; /* 右半分を結果表示に（少し広め） */
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 16px; 
+        }
+        .data-box { 
+            background: rgba(255, 255, 255, 0.7); 
+            padding: 10px; 
+            border-radius: 12px; 
+            text-align: center; 
+            border: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .data-box .label { 
+            font-size: 0.9rem; 
+            color: var(--text-sub); 
+            font-weight: 700;
+        }
+        .data-box .parsed-value { 
+            font-size: 2.5rem; /* さらに特大化 */
+            font-weight: 900; 
+            color: var(--primary-dark); 
+            margin-top: 4px; 
+            font-family: monospace;
+        }
+
+        /* --- 下段左：出荷予定エリア --- */
         .schedule-card {
+            grid-column: 1 / 2; /* 左カラムに配置 */
             padding: 16px 20px;
             display: flex;
             flex-direction: column;
-            /* ★変更：予定表が間延びしないよう、画面の高さの35%に固定 */
-            height: 35vh; 
-            margin-bottom: 16px;
+            min-height: 0; /* スクロールを有効にするおまじない */
         }
-        .schedule-header {
+        
+        /* --- 下段右：履歴エリア --- */
+        .history-card { 
+            grid-column: 2 / 3; /* 右カラムに配置 */
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        /* 表とヘッダーの共通スタイル */
+        .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
             flex-shrink: 0;
         }
-        .schedule-header h3 {
+        .section-header h3 {
             margin: 0; 
             font-size: 1.2rem;
             font-weight: 800;
             color: var(--tech-dark);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
-        .schedule-table-wrapper {
+        .table-wrapper {
             flex-grow: 1; 
             overflow-y: auto;
             border-radius: 8px;
             border: 1px solid rgba(0,0,0,0.05);
             background: rgba(255,255,255,0.7);
         }
-        
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 1rem; /* 文字を少し大きく */
+            font-size: 1rem; 
         }
         th, td {
             padding: 12px 6px;
@@ -135,93 +177,47 @@
             text-decoration: line-through;
             background: rgba(0,0,0,0.02);
         }
-
-        .camera-card { 
-            padding: 20px; 
-            text-align: center; 
-            flex-shrink: 0; 
-            margin-bottom: 16px;
-        }
-        
-        /* ★変更：「照合開始」ボタンを極大サイズに変更 */
-        .btn-scan { 
-            width: 100%; 
-            padding: 30px 15px; /* 高さを大幅アップ */
-            font-size: 2rem; /* 文字を極大に */
-            background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
-            color: white; 
-            border: none; 
-            border-bottom: 8px solid #1e3a8a; /* 厚みをアップ */
-            border-radius: 20px; 
-            font-weight: 900; 
-            letter-spacing: 4px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-            outline: none;
-        }
-        
-        .status-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 16px; 
-            margin-top: 20px; 
-        }
-        .data-box { 
-            background: rgba(255, 255, 255, 0.6); 
-            padding: 20px 10px; /* 余白を大きく */
-            border-radius: 12px; 
-            text-align: center; 
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .data-box .label { 
-            font-size: 0.9rem; 
-            color: var(--text-sub); 
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-        .data-box .parsed-value { 
-            /* ★変更：背番号の文字をiPad用に極大(2.2rem)に設定 */
-            font-size: 2.2rem; 
-            font-weight: 900; 
-            color: var(--primary-dark); 
-            margin-top: 8px; 
-            font-family: monospace;
-        }
-        
-        .history-card { 
-            display: flex; 
-            flex-direction: column; 
-            /* ★変更：余った下のスペースを履歴が綺麗に埋めるように設定 */
-            flex-grow: 1; 
-            min-height: 150px; 
-            padding: 16px 20px; 
-        }
-        .history-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 12px; 
-        }
-        .history-header h2 {
-            margin: 0;
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--tech-dark);
-        }
-        .table-container { 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            border-radius: 8px;
-            border: 1px solid rgba(0,0,0,0.05); 
-            background: rgba(255,255,255,0.7);
-        }
         .row-ok td { background-color: rgba(16, 185, 129, 0.1); }
         .row-ng td { 
             background-color: rgba(239, 68, 68, 0.1); 
             color: var(--danger-dark); 
             font-weight: 800; 
         }
+
+        /* ボタン類 */
+        .btn-group {
+            display: flex;
+            gap: 12px; 
+        }
+        .btn-action {
+            width: 110px; 
+            padding: 10px 0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-blue { background: var(--primary); border-bottom: 4px solid var(--primary-dark); }
+        .btn-red { background: var(--danger); border-bottom: 4px solid var(--danger-dark); }
         
+        /* 画面が狭い時（スマホ等）は自動で縦積みに戻る設計 */
+        @media (max-width: 768px) {
+            .app-container {
+                display: flex;
+                flex-direction: column;
+                height: auto; /* スクロール許可 */
+            }
+            body { overflow: auto; }
+            .camera-card { flex-direction: column; }
+            .btn-scan { padding: 20px; }
+            .schedule-card, .history-card { min-height: 300px; }
+        }
+
+        /* オーバーレイ・ロック画面 */
         .overlay { 
             display: none; 
             position: fixed; 
@@ -266,16 +262,26 @@
 <body>
     <div class="app-container">
 
-        <div class="schedule-card">
-            <div class="schedule-header">
+        <!-- ★ 上段：照合開始ボタン ＆ 結果表示（横並び） -->
+        <div class="glass-card camera-card">
+            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 照合開始</button>
+            <div class="status-grid">
+                <div class="data-box"><div class="label">工程内かんばん</div><div id="parsed1" class="parsed-value">---</div></div> 
+                <div class="data-box"><div class="label">客先かんばん</div><div id="parsed2" class="parsed-value">---</div></div>
+            </div>
+        </div>
+
+        <!-- ★ 下段左：出荷予定 -->
+        <div class="glass-card schedule-card">
+            <div class="section-header">
                 <h3>📦 出荷予定</h3>
                 <div class="btn-group">
                     <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSV(event)">
-                    <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue">出荷予定数読込</button>
+                    <button onclick="document.getElementById('csv-file').click()" class="btn-action btn-blue" style="width: 125px;">出荷予定数読込</button>
                     <button onclick="clearSchedule()" class="btn-action btn-red">消去</button>
                 </div>
             </div>
-            <div class="schedule-table-wrapper">
+            <div class="table-wrapper">
                 <table>
                     <thead><tr><th>背番号</th><th>便</th><th>残数 / 予定</th></tr></thead>
                     <tbody id="schedule-tbody">
@@ -285,36 +291,32 @@
             </div>
         </div>
 
-        <div class="camera-card">
-            <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 照合開始</button>
-            <div class="status-grid">
-                <div class="data-box"><div class="label">工程内かんばん</div><div id="parsed1" class="parsed-value">---</div></div> 
-                <div class="data-box"><div class="label">客先かんばん</div><div id="parsed2" class="parsed-value">---</div></div>
-            </div>
-        </div>
-
-        <div class="history-card">
-            <div class="history-header">
-                <h2 id="history-count">履歴 (0)</h2>
+        <!-- ★ 下段右：履歴 -->
+        <div class="glass-card history-card">
+            <div class="section-header">
+                <h3 id="history-count">🕒 履歴 (0)</h3>
                 <div class="btn-group">
                     <button onclick="autoSendCSV()" class="btn-action btn-blue">CSV送信</button>
                     <button onclick="clearHistory()" class="btn-action btn-red">消去</button>
                 </div>
             </div>
-            <div class="table-container">
+            <div class="table-wrapper">
                 <table id="history-table">
                     <thead><tr><th>日時</th><th>工程内</th><th>客先</th><th>結果/理由</th></tr></thead>
                     <tbody id="history-tbody"></tbody>
                 </table>
             </div>
         </div>
-    </div>
 
+    </div> <!-- app-container end -->
+
+    <!-- OKオーバーレイ -->
     <div id="ok-overlay" class="overlay match-ok">
         <h1 style="font-size: 8rem; margin: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.3);">OK</h1>
         <p style="font-size: 2.2rem; font-weight: 900; margin-top: 5px;">照合一致</p>
     </div>
 
+    <!-- NGオーバーレイ -->
     <div id="lock-screen" class="overlay match-ng">
         <div class="lock-box">
             <h1 style="color: var(--danger); margin: 0 0 5px 0; font-size: 4rem; font-weight: 900;">NG</h1>
@@ -419,7 +421,7 @@
         }
 
         function clearSchedule() {
-            if (confirm("読み込んだ予定データを消去しますか？")) {
+            if (confirm("読み込んだ予定データをクリアしますか？")) {
                 scheduleData = [];
                 localStorage.removeItem('kanbanSchedule');
                 renderSchedule();
@@ -544,8 +546,6 @@
             if (isOk) {
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                
-                // ★ 1000ミリ秒（1秒）に変更しました
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
@@ -564,7 +564,6 @@
             let csv = "日付,時間,工程内,客先,結果\n" 
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
-            // ★ NG時も1000ミリ秒（1秒）に変更しました
             setTimeout(() => {
                 location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
             }, 1000);
@@ -580,7 +579,7 @@
                     <td>${item.reason}</td>
                 </tr>
             `).join('');
-            document.getElementById('history-count').innerText = `履歴 (${historyData.length})`;
+            document.getElementById('history-count').innerText = `🕒 履歴 (${historyData.length})`;
         }
 
         function checkPassword() {
