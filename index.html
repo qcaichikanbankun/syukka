@@ -9,23 +9,27 @@
     <title>かんばん照合システム</title>
     <style>
         :root { 
-            /* モダンで鮮やかなカラーパレット */
             --primary: #007aff; 
             --primary-gradient: linear-gradient(135deg, #007aff 0%, #005bb5 100%);
             --danger: #ff3b30; 
             --danger-gradient: linear-gradient(135deg, #ff453a 0%, #d70015 100%);
-            --bg-color: #f2f4f7; /* 上品なライトグレーブルー */
-            --card-bg: #ffffff;
             --text-main: #1c1c1e;
-            --text-sub: #8e8e93;
-            --border-light: #e5e5ea;
+            --text-sub: #6b7280;
+            --border-light: rgba(229, 229, 234, 0.5);
         }
         
         body { 
             font-family: '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Helvetica Neue', sans-serif; 
             margin: 0; 
             padding: 0; 
-            background-color: var(--bg-color);
+            
+            /* ★変更：いただいたカッコいい3Dキューブ画像を背景に設定 */
+            background-color: #1a1a1a; /* 画像が読み込めなかった時のための黒背景 */
+            background-image: url('5-3-5-22.webp');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            
             height: 100vh; 
             height: 100dvh;
             overflow: hidden; 
@@ -35,48 +39,48 @@
             color: var(--text-main);
         }
 
-        /* iPad画面を美しく広く使うコンテナ */
         .app-container { 
             width: 100%; 
-            max-width: 768px; /* iPad縦画面にベストな幅 */
+            max-width: 768px; 
             height: 100%; 
             padding: 80px 20px 20px 20px; 
             box-sizing: border-box; 
             display: flex; 
             flex-direction: column; 
-            gap: 16px; /* カード間の美しい余白 */
+            gap: 16px; 
         }
 
-        /* プレミアム感のあるカードデザイン */
+        /* ★変更：背景のキューブがうっすら透ける「すりガラス」カード */
         .modern-card {
-            background-color: var(--card-bg);
+            background-color: rgba(255, 255, 255, 0.85); /* 少し透けさせる */
+            backdrop-filter: blur(12px); /* 背景をぼかす魔法のコード */
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 24px;
             padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); /* ふんわりとしたリッチな影 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* ダーク背景に合うように影を強調 */
             display: flex;
             flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.5); /* ガラスのフチの光沢 */
         }
 
-        /* セクションヘッダー */
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
             padding-bottom: 12px;
-            border-bottom: 2px solid #f8f9fa;
+            border-bottom: 2px solid rgba(0,0,0,0.05);
         }
         .section-header h3 {
             margin: 0; 
             font-size: 1.3rem;
-            font-weight: 800;
-            color: #2c3e50;
+            font-weight: 900;
+            color: #1c1c1e;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* スタイリッシュな小ボタン */
         .btn-group {
             display: flex;
             gap: 10px; 
@@ -90,17 +94,16 @@
             font-size: 0.9rem;
             font-weight: 800;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
         .btn-blue { background: var(--primary-gradient); }
         .btn-red { background: var(--danger-gradient); }
 
-        /* テーブル（表）のモダン化 */
         .table-wrapper {
             flex-grow: 1; 
             overflow-y: auto;
             border-radius: 12px;
-            background-color: #fafbfc;
+            background-color: rgba(255, 255, 255, 0.6); /* 表の背景も少し透かす */
             border: 1px solid var(--border-light);
         }
         table {
@@ -111,10 +114,10 @@
         th, td {
             padding: 14px 10px;
             text-align: center;
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         th {
-            background-color: #f1f3f5;
+            background-color: rgba(241, 243, 245, 0.9);
             color: #495057;
             position: sticky;
             top: 0;
@@ -123,21 +126,20 @@
             letter-spacing: 1px;
             z-index: 10;
         }
-        tbody tr:nth-child(even) { background-color: #ffffff; }
+        tbody tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.5); }
         
         .row-complete td {
             color: #adb5bd;
             text-decoration: line-through;
-            background-color: #f8f9fa !important;
+            background-color: rgba(248, 249, 250, 0.5) !important;
         }
-        .row-ok td { background-color: rgba(52, 199, 89, 0.08) !important; }
+        .row-ok td { background-color: rgba(52, 199, 89, 0.15) !important; }
         .row-ng td { 
-            background-color: rgba(255, 59, 48, 0.08) !important; 
+            background-color: rgba(255, 59, 48, 0.15) !important; 
             color: var(--danger); 
             font-weight: 800; 
         }
 
-        /* エリアごとの高さ設定 */
         .schedule-card {
             height: 32vh; 
             min-height: 240px;
@@ -151,7 +153,6 @@
             margin-bottom: 0;
         }
 
-        /* 超・主役の「照合開始」ボタン */
         .btn-scan { 
             width: 100%; 
             padding: 24px 15px; 
@@ -163,11 +164,9 @@
             font-weight: 900; 
             letter-spacing: 3px;
             box-shadow: 0 10px 25px rgba(0, 122, 255, 0.35);
-            /* 内側にほんのり光沢を入れる（リッチな質感） */
             box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 8px 20px rgba(0,122,255,0.3);
         }
 
-        /* 照合結果（背番号）のハイライト表示 */
         .status-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -175,11 +174,12 @@
             margin-top: 20px; 
         }
         .data-box { 
-            background-color: #f8f9fa; /* 優しい背景色 */
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 18px 10px; 
             border-radius: 16px; 
             text-align: center; 
-            border: 2px solid #e9ecef;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
         .data-box .label { 
             font-size: 0.95rem; 
@@ -195,7 +195,6 @@
             letter-spacing: 1px;
         }
 
-        /* オーバーレイ＆ロック画面 */
         .overlay { 
             display: none; 
             position: fixed; 
@@ -227,7 +226,7 @@
             padding: 16px; 
             font-size: 2.2rem; 
             text-align: center; 
-            border: 2px solid var(--border-light); 
+            border: 2px solid #e5e5ea; 
             border-radius: 16px; 
             margin: 24px 0;
             box-sizing: border-box; 
@@ -240,7 +239,6 @@
 <body>
     <div class="app-container">
 
-        <!-- ★ 出荷予定エリア -->
         <div class="modern-card schedule-card">
             <div class="section-header">
                 <h3>📦 出荷予定</h3>
@@ -260,7 +258,6 @@
             </div>
         </div>
 
-        <!-- ★ カメラ＆照合結果エリア -->
         <div class="modern-card camera-card">
             <button class="btn-scan" id="main-scan-btn" onclick="startShortcutScan()">📷 照合開始</button>
             <div class="status-grid">
@@ -269,7 +266,6 @@
             </div>
         </div>
 
-        <!-- ★ 履歴エリア -->
         <div class="modern-card history-card">
             <div class="section-header">
                 <h3 id="history-count">🕒 履歴 (0)</h3>
@@ -288,13 +284,11 @@
 
     </div>
 
-    <!-- OKオーバーレイ -->
     <div id="ok-overlay" class="overlay match-ok">
         <h1 style="font-size: 8rem; margin: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.2);">OK</h1>
         <p style="font-size: 2.5rem; font-weight: 900; margin-top: 10px;">照合一致</p>
     </div>
 
-    <!-- NGオーバーレイ -->
     <div id="lock-screen" class="overlay match-ng">
         <div class="lock-box">
             <h1 style="color: var(--danger); margin: 0 0 10px 0; font-size: 4.5rem; font-weight: 900;">NG</h1>
@@ -390,7 +384,7 @@
                 const isComplete = item.remaining <= 0;
                 return `
                     <tr class="${isComplete ? 'row-complete' : ''}">
-                        <td style="${isComplete ? '' : 'font-weight: 900; font-size: 1.2rem; color: #2c3e50;'}">${item.base}</td>
+                        <td style="${isComplete ? '' : 'font-weight: 900; font-size: 1.2rem; color: #1c1c1e;'}">${item.base}</td>
                         <td style="font-weight: 800; color: #495057;">${item.bin}便</td>
                         <td style="${isComplete ? '' : 'color: var(--primary); font-weight: 900; font-size: 1.3rem;'}">${item.remaining} / ${item.scheduled}</td>
                     </tr>
@@ -524,7 +518,6 @@
             if (isOk) {
                 playSound('ok');
                 document.getElementById('ok-overlay').style.display = 'flex';
-                // ★ 1秒間（1000ミリ秒）OK画面を表示
                 setTimeout(() => { 
                     document.getElementById('ok-overlay').style.display = 'none';
                     startShortcutScan();
@@ -543,7 +536,6 @@
             let csv = "日付,時間,工程内,客先,結果\n" 
                     + `"${dateStr}","${timeStr}","${p1.base}/${p1.part}","${p2.base}/${p2.part}","${ngReason}"`;
             
-            // ★ NG時も1秒間（1000ミリ秒）表示
             setTimeout(() => {
                 location.href= (`shortcuts://run-shortcut?name=${encodeURIComponent("かんばんNG通知")}&input=${encodeURIComponent(csv)}`);
             }, 1000);
